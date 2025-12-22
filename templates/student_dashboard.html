@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Dashboard</title>
+  <link rel="stylesheet" href="/static/css/student.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar">
+    <h2 class="sidebar-title" id="sidebar-title">Skillvine</h2>
+
+    <!-- Main Navigation -->
+    <ul class="nav-links">
+      <li><a href="#" class="active"><i class="bi bi-house"></i><span>Dashboard</span></a></li>
+      <li><a href="#"><i class="bi bi-journal-bookmark"></i><span>My Courses</span></a></li>
+      <li><a href="#"><i class="bi bi-person-lines-fill"></i><span>My Tutors</span></a></li>
+      <li><a href="#"><i class="bi bi-calendar-event"></i><span>Schedule</span></a></li>
+    </ul>
+
+    <!-- Settings (Bottom) -->
+    <div class="settings">
+      <a href="#" class="settings-toggle">
+        <span><i class="bi bi-gear"></i> <span>Settings</span></span>
+        <i class="bi bi-chevron-down arrow"></i>
+      </a>
+      <ul class="settings-submenu">
+        <li><a href="/logout"><i class="bi bi-box-arrow-right"></i><span>Logout</span></a></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Topbar -->
+  <div class="topbar" id="topbar">
+    <button class="toggle-btn" id="toggle-btn">
+      <i class="bi bi-list"></i>
+    </button>
+    <h1 class="topbar-title" id="topbar-title">Student Dashboard</h1>
+  </div>
+
+  <!-- Main Content -->
+  <div class="content" id="content">
+    <h1>Welcome, Student!</h1>
+    <p>Track your lessons, tutors, and progress all in one place.</p>
+
+    <div class="card">
+      <h2>Upcoming Lessons</h2>
+      <p>You have 3 scheduled lessons this week. Stay prepared!</p>
+    </div>
+
+    <div class="card">
+      <h2>Your Tutors</h2>
+      <p>View and message your active tutors for better learning.</p>
+    </div>
+  </div>
+
+  <!-- Script -->
+  <script>
+    const toggleBtn = document.getElementById('toggle-btn');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarTitle = document.getElementById('sidebar-title');
+    const content = document.getElementById('content');
+    const topbar = document.getElementById('topbar');
+    const title = document.getElementById('topbar-title');
+    const settingsToggle = document.querySelector('.settings-toggle');
+    const settingsSubmenu = document.querySelector('.settings-submenu');
+    const arrow = document.querySelector('.arrow');
+
+    toggleBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('collapsed');
+      content.classList.toggle('expanded');
+      topbar.classList.toggle('shifted');
+      title.classList.toggle('stretched');
+
+      if (sidebar.classList.contains('collapsed')) {
+        sidebarTitle.textContent = 'SV';
+      } else {
+        sidebarTitle.textContent = 'Skillvine';
+      }
+    });
+
+    settingsToggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      settingsSubmenu.classList.toggle('open');
+      arrow.classList.toggle('rotated');
+    });
+
+  // Logout with fade-out effect
+  document.querySelector('a[href="/logout"]').addEventListener('click', function (e) {
+    e.preventDefault();
+    document.body.style.transition = 'opacity 0.5s';
+    document.body.style.opacity = '0';
+    setTimeout(() => window.location.href = '/logout', 500);
+  });
+  </script>
+  <script src="/static/js/flash.js"></script>
+</body>
+</html>

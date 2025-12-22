@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Manage Profile</title>
+  <link rel="stylesheet" href="/static/css/auth.css">
+</head>
+<body>
+  <div class="auth-container">
+    <h1 class="brand-title">Manage Profile</h1>
+    <div class="auth-box">
+      <div id="status"></div>
+
+      <h3>Account</h3>
+      <div>
+        <label>Email</label>
+        <div id="email_box"></div>
+        <button id="verify_email_btn">Send verification email</button>
+      </div>
+
+      <h3>Display Name</h3>
+      <div>
+        <input id="full_name" type="text" />
+        <button id="save_name">Save Name</button>
+      </div>
+
+      <h3>Change Password</h3>
+      <div>
+        <input id="old_password" type="password" placeholder="Current password" />
+        <input id="new_password" type="password" placeholder="New password" />
+        <button id="save_password">Change Password</button>
+      </div>
+
+      <h3>Teacher Verification</h3>
+      <div id="teacher_verification_box">
+        <p id="tv_status">Not Requested</p>
+        <form id="upload_id_form" enctype="multipart/form-data">
+          <input type="file" name="id_file" id="id_file" accept="image/*,.pdf" />
+          <button type="submit">Upload ID (Teacher)</button>
+        </form>
+      </div>
+
+      <h3>View As / Role</h3>
+      <div>
+        <label>View as:</label>
+        <select id="view_as_select">
+          <option value="student">Student</option>
+          <option value="teacher">Teacher</option>
+        </select>
+        <button id="apply_view_as">Apply (temporary)</button>
+        <button id="save_role">Save Role (persist)</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="/static/js/profile_manager.js"></script>
+</body>
+</html>

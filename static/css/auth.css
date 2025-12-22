@@ -1,0 +1,344 @@
+/* 🌿 Reset & Base Styling */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Inter', sans-serif;
+}
+
+body {
+  background: linear-gradient(135deg, #4A90E2, #50E3C2);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+/* 🌿 Center Container */
+.auth-container {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: fadeIn 0.6s ease;
+}
+
+/* 🌿 Brand Title */
+.brand-title {
+  color: #ffffff;
+  font-size: 3rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  margin-bottom: 30px;
+  text-align: center;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  position: relative;
+}
+
+/* 🌿 Auth Box */
+.auth-box {
+  background: #ffffff;
+  padding: 40px 30px;
+  border-radius: 15px;
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.2);
+  width: 100%;
+}
+
+/* 🌿 Header */
+.auth-header h2 {
+  margin-bottom: 8px;
+  color: #082e56;
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.auth-header p {
+  font-size: 14px;
+  color: #666666;
+}
+
+.auth-header a {
+  color: #4A90E2;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.auth-header a:hover {
+  color: #357ABD;
+  text-decoration: underline;
+}
+
+/* 🌿 Form */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 25px;
+}
+
+/* 🌿 Input & Select */
+.auth-form input,
+.auth-form select {
+  padding: 12px;
+  border: 1px solid #d0d0d0;
+  border-radius: 10px;
+  font-size: 14px;
+  outline: none;
+  transition: border 0.3s ease;
+  width: 100%;
+}
+
+.auth-form input:focus,
+.auth-form select:focus {
+  border-color: #4A90E2;
+}
+
+/* 🌿 Password Group with Eye Icon */
+.password-group {
+  position: relative;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  opacity: 0.6;
+  transition: opacity 0.3s ease;
+}
+
+.toggle-password:hover {
+  opacity: 1;
+}
+/* 👁 Eye Button Hover & Active Effects */
+.toggle-password {
+  color: #4A90E2;
+  transition: color 0.3s, transform 0.2s;
+}
+
+.toggle-password:hover {
+  color: #5fb3ff;
+  transform: scale(1.1);
+}
+
+.toggle-password.active {
+  color: #1b6ff0;
+}
+
+/* 🌿 Password Strength */
+.password-strength {
+  font-size: 12px;
+  font-weight: 600;
+  text-align: right;
+  margin-top: -8px;
+  min-height: 16px;
+}
+
+.password-strength.weak {
+  color: #ff4d4f;
+}
+.password-strength.medium {
+  color: #faad14;
+}
+.password-strength.strong {
+  color: #52c41a;
+}
+
+/* 🌿 Password Match Indicator */
+.password-match {
+  font-size: 12px;
+  font-weight: 600;
+  text-align: right;
+  margin-top: -8px;
+  min-height: 16px;
+}
+
+.password-match.nomatch {
+  color: #ff4d4f;
+}
+.password-match.match {
+  color: #52c41a;
+}
+
+/* 🌿 Submit Button */
+.auth-form button[type="submit"] {
+  padding: 12px;
+  background-color: #4A90E2;
+  color: #ffffff;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.auth-form button[type="submit"]:hover {
+  background-color: #357ABD;
+}
+
+/* 🌿 Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 🌿 Responsive Design */
+@media (max-width: 480px) {
+  .auth-box {
+    padding: 30px 20px;
+  }
+
+  .brand-title {
+    font-size: 2.4rem;
+  }
+}
+
+
+/* 🔹 Login Error Message */
+.error-message {
+  color: #ff4d4f;             /* Clear red, great choice for errors */
+  font-size: 13px;
+  margin-top: -5px;
+  margin-bottom: 10px;
+  text-align: left;
+  font-weight: 500;
+  min-height: 18px;           /* ✅ Prevents layout jumping — smart */
+  opacity: 0;                 /* start hidden */
+  transition: opacity 0.3s ease;
+}
+
+/* When visible */
+.error-message.show {
+  opacity: 1;
+}
+
+.fade-message {
+  color: red;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 10px;
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.fade-message.show {
+  opacity: 1;
+}
+
+.fade-message.hide {
+  opacity: 0;
+  transition: opacity 1s ease-out;
+}
+.success-message {
+  color: #52c41a; /* Green for success */
+  font-size: 14px;
+  margin-top: 15px;
+  text-align: center;
+  font-weight: 600;
+}
+
+/* Top notification banner used for success messages */
+.top-notice {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(34, 197, 94, 0.95); /* green */
+  color: white;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 700;
+  z-index: 9999;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  opacity: 0;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.top-notice.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.top-notice.hide {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-8px);
+}
+
+/* ---------------- Alert Styles (based on your example) ---------------- */
+.alert {
+  padding: 14px 18px;
+  background-color: #f44336; /* default danger */
+  color: white;
+  opacity: 1;
+  transition: opacity 0.6s;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.alert.success { background-color: #04AA6D; }
+.alert.info { background-color: #2196F3; }
+.alert.warning { background-color: #ff9800; }
+
+.alert .message {
+  flex: 1;
+  font-weight: 700;
+}
+
+.closebtn {
+  margin-left: 12px;
+  color: white;
+  font-weight: bold;
+  font-size: 20px;
+  line-height: 18px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+}
+.closebtn:hover { color: rgba(0,0,0,0.9); }
+
+/* Make top-notice use alert layout */
+.top-notice.alert {
+  padding: 12px 16px;
+  min-width: 280px;
+  max-width: 720px;
+}
+
+
+.password-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-field input {
+  width: 100%;
+  padding-right: 30px;
+}
+
+.toggle-icon {
+  position: absolute;
+  right: 10px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 1.1em;
+  transition: transform 0.2s ease;
+}
+
+.toggle-icon:hover {
+  transform: scale(1.2);
+}
+

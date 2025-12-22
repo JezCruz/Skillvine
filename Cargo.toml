@@ -1,0 +1,66 @@
+[package]
+name = "skillvine"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+once_cell = "1.18"
+
+# --- Actix Web ---
+actix-web = "4.5.1"
+actix-files = "0.6.8"
+actix-session = { version = "0.7", features = ["cookie-session"] }
+
+# --- Database ---
+sqlx = { version = "0.7.1", features = [
+    "postgres",
+    "runtime-tokio-rustls",
+    "macros",
+    "migrate",
+    "chrono"
+] }
+
+# --- Crypto ---
+argon2 = "0.5"
+password-hash = "0.5"
+rand_core = "0.6"
+rand = "0.8"
+hex = "0.4"
+
+# --- Serialization ---
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_urlencoded = "0.7"
+
+# --- Utilities ---
+dotenv = "0.15"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.3", features = ["v4"] }
+anyhow = "1.0"
+
+# --- Email ---
+lettre = "0.11"
+actix-multipart = "0.4"
+
+# additional utilities used by profile manager
+futures-util = "0.3"
+sanitize-filename = "0.5"
+
+# --- Shuttle Hosting ---
+shuttle-actix-web = { version = "0.42.0", optional = true }
+shuttle-runtime = { version = "0.42.0", optional = true }
+shuttle-shared-db = { version = "0.42.0", optional = true, features = ["postgres"] }
+shuttle-secrets = { version = "0.42.0", optional = true }
+
+# --- Tokio ---
+tokio = { version = "1.36", features = ["full"] }
+
+[features]
+default = []
+shuttle = ["shuttle-actix-web", "shuttle-runtime", "shuttle-shared-db", "shuttle-secrets"]
+
+[dev-dependencies]
+reqwest = { version = "0.12", features = ["json"] }
+cargo-watch = "8.5"
+pretty_assertions = "1.4"
+insta = "1.38"

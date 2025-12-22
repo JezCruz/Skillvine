@@ -1,0 +1,438 @@
+/* ---------------------------------------------------
+   🌿 Global Reset & Base Styles
+--------------------------------------------------- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Inter", sans-serif;
+}
+
+body {
+  line-height: 1.6;
+  color: #333;
+  background-color: #f9f9f9;
+}
+
+/* Text Utility */
+.contact-text {
+  font-size: 16px;
+  color: #790000;
+  margin-bottom: 15px;
+}
+
+/* ---------------------------------------------------
+   🌿 Navbar
+--------------------------------------------------- */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #1a1a1a;
+  padding: 10px 20px;
+  color: #fff;
+  position: relative;
+  z-index: 2000;
+}
+
+.nav-links {
+  list-style: none;
+  display: flex; /* visible on PC */
+  gap: 20px;
+}
+
+.nav-links li a {
+  color: white;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.nav-links li a:hover {
+  color: #00c4cc;
+}
+
+.menu-toggle {
+  display: none; /* visible only on mobile */
+  font-size: 24px;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  z-index: 2000;
+}
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+  .menu-toggle {
+    display: block;
+  }
+
+  .nav-links {
+    display: none; /* hidden by default on mobile */
+    flex-direction: column;
+    position: absolute;
+    top: 60px;
+    right: 20px;
+    background-color: #222;
+    border-radius: 8px;
+    padding: 10px;
+    gap: 10px;
+    width: 200px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+  }
+
+  .nav-links.active {
+    display: flex;
+  }
+
+  .nav-links li a {
+    font-size: 1rem;
+  }
+}
+
+/* ---------------------------------------------------
+   🌿 Hero Section
+--------------------------------------------------- */
+.hero {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  min-height: 100vh;
+  padding: 0 1.5rem;
+  color: #fff;
+  background: linear-gradient(135deg, #4a90e2, #50e3c2);
+  flex-direction: column;
+}
+
+.hero h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.hero p {
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+}
+
+.hero-btn {
+  padding: 0.75rem 2rem;
+  background-color: #fff;
+  color: #4a90e2;
+  border-radius: 50px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.hero-btn:hover {
+  background-color: #4a90e2;
+  color: #fff;
+}
+
+/* ---------------------------------------------------
+   🌿 Features Section
+--------------------------------------------------- */
+.features {
+  background-color: #f9f9f9;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.features-title {
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 50px;
+  color: #333;
+}
+
+.feature-container {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.feature-card {
+  background-color: #fff;
+  border-radius: 15px;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
+  padding: 30px 20px;
+  width: 300px;
+  transition: all 0.3s ease;
+}
+
+.feature-card h4 {
+  font-size: 1.3rem;
+  margin-bottom: 15px;
+  color: #082e56;
+}
+
+.feature-card p {
+  color: #100371;
+  transition: text-shadow 0.3s ease, background-color 0.3s ease;
+}
+
+.feature-card p:hover {
+  text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.2);
+  background-color: rgba(255, 255, 255, 0.7);
+  border-radius: 5px;
+  padding: 2px 4px;
+}
+
+.feature-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+  background-color: #f0f8ff;
+}
+
+/* ---------------------------------------------------
+   🌿 Tab Popups
+--------------------------------------------------- */
+.tab-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  background-color: #fff;
+  padding: 30px 40px;
+  border-radius: 15px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+  width: 400px;
+  max-width: 90%;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.4s ease;
+}
+
+.tab-popup.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  pointer-events: auto;
+}
+
+.tab-popup .tab-content h2 {
+  font-size: 24px;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.tab-popup .tab-content p,
+.tab-popup .tab-content ul {
+  font-size: 16px;
+  color: #555;
+  line-height: 1.5;
+}
+
+.close-tab {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  font-size: 24px;
+  cursor: pointer;
+  color: #333;
+  transition: color 0.3s ease;
+}
+
+.close-tab:hover {
+  color: #4a90e2;
+}
+
+/* ---------------------------------------------------
+   🌿 Footer
+--------------------------------------------------- */
+footer {
+  text-align: center;
+  padding: 2rem;
+  background-color: #333;
+  color: #fff;
+}
+
+/* ---------------------------------------------------
+   🌿 Image Slider
+--------------------------------------------------- */
+.image-slider {
+  width: 100%;
+  height: 500px;
+  overflow: hidden;
+  position: relative;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  background-color: #04d4e3;
+}
+
+.slides {
+  display: flex;
+  width: 950%; /* 10 images */
+  animation: slideShow 35s infinite;
+}
+
+.slides img {
+  width: 5%;
+  height: 500px;
+  object-fit: cover;
+  animation: zoomInOut 40s infinite;
+}
+
+@keyframes slideShow {
+  0%, 10%   { transform: translateX(0%); }
+  15%, 25%  { transform: translateX(-10%); }
+  30%, 40%  { transform: translateX(-20%); }
+  45%, 55%  { transform: translateX(-30%); }
+  60%, 70%  { transform: translateX(-40%); }
+  75%, 85%  { transform: translateX(-50%); }
+  90%, 100% { transform: translateX(-60%); }
+}
+
+@keyframes zoomInOut {
+  0%, 15%, 30%, 45%, 60%, 75%, 90%, 100% { transform: scale(1); }
+  10%, 25%, 40%, 55%, 70%, 85% { transform: scale(1.02); }
+}
+
+.slider-caption {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  color: white;
+  font-size: 24px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+/* ---------------------------------------------------
+   🌿 Auth Pages (Login / Signup)
+--------------------------------------------------- */
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: linear-gradient(135deg, #4a90e2, #50e3c2);
+}
+
+.auth-box {
+  background-color: #fff;
+  padding: 40px 30px;
+  border-radius: 15px;
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.2);
+  width: 400px;
+  text-align: center;
+}
+
+.auth-header h2 {
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.auth-header p {
+  font-size: 14px;
+  color: #666;
+}
+
+.auth-header span#toggle-form {
+  color: #4a90e2;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.auth-form input {
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.auth-form button {
+  padding: 12px;
+  background-color: #4a90e2;
+  color: #fff;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.auth-form button:hover {
+  background-color: #357abd;
+}
+
+.hidden {
+  display: none;
+}
+
+/* Password Strength Indicator */
+.password-strength {
+  font-weight: 600;
+  margin-top: 5px;
+  font-size: 12px;
+  transition: color 0.3s ease;
+}
+
+.password-strength.weak { color: #ff4d4f; }
+.password-strength.medium { color: #faad14; }
+.password-strength.strong { color: #52c41a; }
+
+/* ---------------------------------------------------
+   🌿 Responsive Adjustments
+--------------------------------------------------- */
+
+/* Hero Section Responsiveness */
+@media (max-width: 1200px) {
+  .hero h1 { font-size: 2rem; }
+  .hero p { font-size: 1rem; }
+  .hero-btn { padding: 0.65rem 1.5rem; font-size: 0.9rem; }
+}
+
+@media (max-width: 768px) {
+  .hero { height: auto; padding: 4rem 1rem; }
+  .hero h1 { font-size: 1.6rem; }
+  .hero p { font-size: 0.95rem; }
+  .hero-btn { padding: 0.5rem 1.25rem; font-size: 0.85rem; }
+}
+
+/* Features Section Responsiveness */
+@media (max-width: 1024px) {
+  .feature-container { gap: 25px; }
+  .feature-card { width: 280px; }
+}
+
+@media (max-width: 768px) {
+  .features-title { font-size: 2rem; margin-bottom: 30px; }
+  .feature-container { flex-direction: column; align-items: center; gap: 20px; }
+  .feature-card { width: 90%; }
+}
+
+/* Image Slider Responsiveness */
+@media (max-width: 1024px) {
+  .image-slider { height: 400px; }
+  .slides img { height: 400px; }
+  .slider-caption { font-size: 20px; }
+}
+
+@media (max-width: 768px) {
+  .image-slider { height: 300px; }
+  .slides img { height: 300px; }
+  .slider-caption { font-size: 16px; bottom: 15px; left: 15px; }
+}
+
+@media (max-width: 480px) {
+  .image-slider { height: 200px; }
+  .slides img { height: 200px; }
+  .slider-caption { font-size: 14px; }
+}
+
+/* Tab Popups Responsiveness */
+@media (max-width: 480px) {
+  .tab-popup { padding: 20px; width: 90%; }
+  .tab-popup .tab-content h2 { font-size: 20px; }
+  .tab-popup .tab-content p,
+  .tab-popup .tab-content ul { font-size: 14px; }
+}

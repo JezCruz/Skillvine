@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Skillvine Dashboard</title>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <div class="container">
+        <!-- Main content -->
+        <main class="main-content">
+            <header>
+                <h1>Welcome, <span id="username">User</span>!</h1>
+                <button id="sidebar-toggle" class="hamburger">&#9776;</button>
+            </header>
+
+            <section class="overview">
+                <h2>Overview</h2>
+                <p>Here’s a quick summary of your progress.</p>
+            </section>
+
+            <section class="stats">
+                <h2>Your Stats</h2>
+                <div class="cards">
+                    <div class="card">
+                        <h3>Completed Courses</h3>
+                        <p>0</p>
+                    </div>
+                    <div class="card">
+                        <h3>Ongoing Courses</h3>
+                        <p>0</p>
+                    </div>
+                    <div class="card">
+                        <h3>Earned Points</h3>
+                        <p>0</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <h2>Skillvine</h2>
+            <ul>
+                <li><a href="/overview">Overview</a></li>
+                <li><a href="/profile">Profile</a></li>
+                <li><a href="/settings">Settings</a></li>
+            </ul>
+        </aside>
+    </div>
+
+    <!-- JS for toggle and active link -->
+    <script>
+        const toggleBtn = document.getElementById("sidebar-toggle");
+        const sidebar = document.getElementById("sidebar");
+
+        // Toggle sidebar collapsed class
+        toggleBtn.addEventListener("click", () => {
+            sidebar.classList.toggle("collapsed");
+        });
+
+        // Highlight active sidebar link
+        const currentPath = window.location.pathname;
+        document.querySelectorAll('.sidebar a').forEach(link => {
+            if (link.getAttribute('href') === currentPath) {
+                link.classList.add('active');
+            }
+        });
+    </script>
+</body>
+</html>

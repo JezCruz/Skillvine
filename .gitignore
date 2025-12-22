@@ -1,0 +1,14 @@
+# Ignore environment files containing secrets
+.env
+.env.local
+
+# Rust/Cargo
+/target
+**/target
+Cargo.lock
+
+# Editor files
+.vscode/
+*.swp
+*.swo
+/target
