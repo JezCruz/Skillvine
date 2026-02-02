@@ -15,7 +15,11 @@
       <h3>Account</h3>
       <div>
         <label>Email</label>
-        <div id="email_box"></div>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <input id="email_display" type="text" readonly style="min-width:240px;" />
+          <button id="copy_email_btn">Copy</button>
+          <span id="email_verified_badge" style="font-size:12px;"></span>
+        </div>
         <button id="verify_email_btn">Send verification email</button>
       </div>
 

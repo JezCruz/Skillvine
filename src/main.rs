@@ -64,6 +64,7 @@ async fn log_activity(user_id: i32, action: &str) {
 async fn home(session: Session, req: HttpRequest) -> actix_web::Result<HttpResponse> {
     if let Some(role) = session.get::<String>("role").unwrap_or(None) {
         let redirect_url = match role.as_str() {
+            "admin" => "/admin",
             "teacher" => "/teacher_dashboard",
             _ => "/student_dashboard",
         };
@@ -80,6 +81,7 @@ async fn home(session: Session, req: HttpRequest) -> actix_web::Result<HttpRespo
 async fn login(session: Session, req: HttpRequest) -> actix_web::Result<HttpResponse> {
     if let Some(role) = session.get::<String>("role").unwrap_or(None) {
         let redirect_url = match role.as_str() {
+            "admin" => "/admin",
             "teacher" => "/teacher_dashboard",
             _ => "/student_dashboard",
         };
@@ -96,6 +98,7 @@ async fn login(session: Session, req: HttpRequest) -> actix_web::Result<HttpResp
 async fn signup(session: Session, req: HttpRequest) -> actix_web::Result<HttpResponse> {
     if let Some(role) = session.get::<String>("role").unwrap_or(None) {
         let redirect_url = match role.as_str() {
+            "admin" => "/admin",
             "teacher" => "/teacher_dashboard",
             _ => "/student_dashboard",
         };
@@ -317,6 +320,7 @@ async fn login_submit(req: HttpRequest, body: web::Bytes, session: Session) -> R
             log_activity(user.id, "Logged in").await;
 
             let redirect_url = match user.role.as_deref() {
+                Some("admin") => "/admin",
                 Some("teacher") => "/teacher_dashboard",
                 _ => "/student_dashboard",
             };
@@ -366,6 +370,8 @@ fn configure(cfg: &mut web::ServiceConfig) {
         .service(signup)
         .service(signup_submit)
         .configure(crate::routes::profile::init)
+        .configure(crate::routes::admin::init)
+        .configure(crate::routes::notifications::init)
         .service(profile)
         .service(settings)
         .service(teacher_dashboard)
@@ -505,7 +511,12 @@ async fn main() -> std::io::Result<()> {
 
     let server = actix_web::HttpServer::new(move || {
         actix_web::App::new()
-            .wrap(SessionMiddleware::new(CookieSessionStore::default(), session_key.clone()))
+            .wrap(
+                SessionMiddleware::builder(CookieSessionStore::default(), session_key.clone())
+                    // Use secure cookies only when serving over HTTPS; for local HTTP dev set to false.
+                    .cookie_secure(false)
+                    .build(),
+            )
             .configure(configure)
     })
     .bind((bind_addr.as_str(), port))?;

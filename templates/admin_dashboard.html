@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Portal</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <style>
+    body { font-family: "Segoe UI", Arial, sans-serif; background:#0b1224; color:#0f172a; margin:0; }
+    .shell { max-width:1200px; margin:28px auto; background:#f8fafc; border-radius:14px; padding:20px 24px; box-shadow:0 24px 60px rgba(15,23,42,0.2); }
+    header { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+    h1 { margin:0; font-size:22px; color:#0f172a; }
+    .muted { color:#6b7280; }
+    .small { font-size:12px; }
+    .controls { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    input, select { padding:8px 10px; border:1px solid #d7dde6; border-radius:8px; background:#fff; }
+    button { border:none; border-radius:8px; padding:8px 12px; cursor:pointer; font-size:13px; }
+    .btn { display:inline-flex; align-items:center; gap:6px; }
+    .btn-refresh { background:#e2e8f0; color:#0f172a; }
+    .btn-export { background:#0ea5e9; color:#fff; }
+    .btn-approve { background:#16a34a; color:#fff; }
+    .btn-reject { background:#dc2626; color:#fff; }
+    .btn-view { background:#475569; color:#fff; }
+    .btn-bulk { background:#111827; color:#fff; }
+    .tag { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:8px; background:#e2e8f0; color:#0f172a; font-size:13px; text-decoration:none; }
+    table { width:100%; border-collapse:collapse; background:#fff; border-radius:12px; overflow:hidden; margin-top:12px; }
+    th, td { padding:12px 10px; text-align:left; border-bottom:1px solid #e2e8f0; font-size:14px; }
+    th { background:#f1f5f9; color:#0f172a; }
+    tr:last-child td { border-bottom:none; }
+    .status { padding:4px 8px; border-radius:999px; font-size:12px; font-weight:600; display:inline-flex; align-items:center; gap:6px; }
+    .status.pending { background:#fff7ed; color:#c2410c; }
+    .status.approved { background:#ecfdf3; color:#166534; }
+    .status.rejected { background:#fef2f2; color:#b91c1c; }
+    .actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .empty { text-align:center; padding:24px; color:#6b7280; }
+    .drawer { position:fixed; inset:0; background:rgba(0,0,0,0.55); display:flex; justify-content:flex-end; align-items:stretch; z-index:1200; }
+    .drawer.hidden { display:none; }
+    .panel { width:420px; background:#fff; padding:16px; overflow-y:auto; }
+    .panel h3 { margin:0 0 8px 0; }
+    .preview { width:100%; border:1px solid #e2e8f0; border-radius:10px; object-fit:cover; height:220px; background:#f8fafc; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .note-box { width:100%; min-height:70px; padding:10px; border:1px solid #d7dde6; border-radius:8px; }
+    .section { margin-top:32px; }
+    .pill { display:inline-flex; gap:6px; align-items:center; padding:6px 10px; background:#e2e8f0; border-radius:999px; font-size:12px; color:#334155; }
+    .switch { display:inline-flex; align-items:center; gap:8px; }
+    .users-table { margin-top:12px; }
+    .notice-box { margin-top:14px; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px; }
+    .input { width:100%; padding:10px; border:1px solid #d7dde6; border-radius:10px; }
+    .text-area { width:100%; min-height:120px; padding:10px; border:1px solid #d7dde6; border-radius:10px; }
+    .suggestions { background:#fff; border:1px solid #e5e7eb; border-radius:10px; margin-top:6px; max-height:160px; overflow-y:auto; }
+    .suggestion { padding:8px 10px; cursor:pointer; }
+    .suggestion:hover { background:#f8fafc; }
+    .file-label { display:inline-flex; align-items:center; gap:8px; padding:8px 10px; border:1px dashed #94a3b8; border-radius:10px; cursor:pointer; background:#f8fafc; }
+    .support-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .support-card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:12px; min-height:200px; }
+    .support-item { border-bottom:1px solid #e5e7eb; padding:10px 0; }
+    .support-item:last-child { border-bottom:none; }
+    .pill.small { padding:4px 8px; font-size:11px; }
+    .tabbar { display:flex; gap:8px; margin:16px 0 8px 0; flex-wrap:wrap; }
+    .tab { padding:10px 12px; border-radius:10px; border:1px solid #e2e8f0; background:#fff; color:#0f172a; cursor:pointer; font-weight:600; box-shadow:0 6px 18px rgba(0,0,0,0.04); }
+    .tab.active { background:#0ea5e9; color:#fff; border-color:#0ea5e9; box-shadow:0 10px 24px rgba(14,165,233,0.28); }
+    .view-section.hidden { display:none; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div>
+        <h1>Admin Portal</h1>
+        <div class="muted">Manage KYC requests and users</div>
+      </div>
+      <div class="controls">
+        <select id="filter-status">
+          <option value="">All statuses</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+        </select>
+        <input id="filter-search" placeholder="Search name or email" />
+        <button class="btn btn-refresh" id="refresh-btn"><i class="bi bi-arrow-clockwise"></i>Refresh</button>
+        <button class="btn btn-export" id="export-btn"><i class="bi bi-download"></i>CSV</button>
+        <a class="tag" href="/teacher_dashboard"><i class="bi bi-arrow-left"></i> Back</a>
+      </div>
+    </header>
+
+    <div class="tabbar">
+      <button class="tab active" data-tab="kyc">KYC</button>
+      <button class="tab" data-tab="users">Users</button>
+      <button class="tab" data-tab="notices">Notices</button>
+      <button class="tab" data-tab="support">Support</button>
+    </div>
+    <div class="view-section" data-tab="kyc">
+      <div class="controls" style="margin-top:10px;">
+        <button class="btn btn-bulk" id="bulk-approve"><i class="bi bi-check-circle"></i> Bulk Approve</button>
+        <button class="btn btn-reject" id="bulk-reject"><i class="bi bi-x-circle"></i> Bulk Reject</button>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="select-all"></th>
+            <th>Name / Email</th>
+            <th>DOB / Gender</th>
+            <th>Submitted</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="kyc-body">
+          <tr><td colspan="6" class="empty">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="view-section hidden" data-tab="users">
+      <div class="section">
+        <div class="controls" style="justify-content:space-between;">
+          <div>
+            <h2 style="margin:0;">Users</h2>
+            <div class="muted small">Manage roles, active state, impersonation, password reset</div>
+          </div>
+          <button class="btn btn-refresh" id="users-refresh"><i class="bi bi-arrow-clockwise"></i>Refresh Users</button>
+        </div>
+        <table class="users-table">
+          <thead>
+            <tr>
+              <th>Name / Email</th>
+              <th>Role</th>
+              <th>Active</th>
+              <th>Verified</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="users-body">
+            <tr><td colspan="5" class="empty">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="view-section hidden" data-tab="notices">
+      <div class="section">
+        <div class="controls" style="justify-content:space-between; align-items:flex-end;">
+          <div>
+            <h2 style="margin:0;">Send Notice</h2>
+            <div class="muted small">Push a message to a user (shows in their bell + popup)</div>
+          </div>
+          <div class="muted small" id="notice-status"></div>
+        </div>
+        <div class="notice-box">
+          <label class="muted small">Search user</label>
+          <input class="input" id="notice-search" placeholder="Search by name or email" />
+          <div class="suggestions" id="notice-suggestions"></div>
+          <div class="muted small" id="notice-selected" style="margin-top:6px;">No user selected</div>
+          <div style="display:grid; grid-template-columns:1fr; gap:10px; margin-top:12px;">
+            <div>
+              <label class="muted small">Title</label>
+              <input class="input" id="notice-title" placeholder="Subject" />
+            </div>
+            <div>
+              <label class="muted small">Message</label>
+              <textarea class="text-area" id="notice-body" placeholder="Write the notice..." rows="5"></textarea>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <label class="file-label" for="notice-file"><i class="bi bi-paperclip"></i> Add attachment</label>
+              <input type="file" id="notice-file" hidden />
+              <div class="muted small" id="notice-file-name">Optional file/image</div>
+            </div>
+          </div>
+          <div style="margin-top:12px; display:flex; justify-content:flex-end; gap:8px;">
+            <button class="btn btn-export" id="notice-send"><i class="bi bi-send"></i> Send notice</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="controls" style="justify-content:space-between; align-items:flex-end;">
+          <div>
+            <h2 style="margin:0;">Sent Notices</h2>
+            <div class="muted small">Edit or delete messages you sent</div>
+          </div>
+          <button class="btn btn-refresh" id="sent-refresh"><i class="bi bi-arrow-clockwise"></i>Refresh</button>
+        </div>
+        <div id="sent-list" class="support-card" style="margin-top:10px; min-height:120px;"></div>
+      </div>
+    </div>
+
+    <div class="view-section hidden" data-tab="support">
+      <div class="section">
+        <div class="controls" style="justify-content:space-between;">
+          <div>
+            <h2 style="margin:0;">User Reports / Requests</h2>
+            <div class="muted small">New requests vs done</div>
+          </div>
+          <div class="controls" style="gap:6px;">
+            <button class="btn btn-refresh" id="refresh-support">Refresh</button>
+          </div>
+        </div>
+        <div class="support-grid">
+          <div class="support-card">
+            <h3 style="margin-top:0;">New</h3>
+            <div id="support-new"></div>
+          </div>
+          <div class="support-card">
+            <h3 style="margin-top:0;">Done</h3>
+            <div id="support-done"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="drawer hidden" id="kyc-drawer">
+    <div class="panel">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3>KYC Detail</h3>
+        <button class="btn btn-refresh" id="close-drawer">Close</button>
+      </div>
+      <div id="kyc-detail"></div>
+    </div>
+  </div>
+
+  <script>
+    const bodyEl = document.getElementById('kyc-body');
+    const refreshBtn = document.getElementById('refresh-btn');
+    const exportBtn = document.getElementById('export-btn');
+    const statusFilter = document.getElementById('filter-status');
+    const searchFilter = document.getElementById('filter-search');
+    const selectAll = document.getElementById('select-all');
+    const bulkApprove = document.getElementById('bulk-approve');
+    const bulkReject = document.getElementById('bulk-reject');
+    const drawer = document.getElementById('kyc-drawer');
+    const drawerDetail = document.getElementById('kyc-detail');
+    const closeDrawer = document.getElementById('close-drawer');
+    const usersBody = document.getElementById('users-body');
+    const usersRefresh = document.getElementById('users-refresh');
+    const noticeSearch = document.getElementById('notice-search');
+    const noticeSuggestions = document.getElementById('notice-suggestions');
+    const noticeSelected = document.getElementById('notice-selected');
+    const noticeTitle = document.getElementById('notice-title');
+    const noticeBody = document.getElementById('notice-body');
+    const noticeFile = document.getElementById('notice-file');
+    const noticeFileName = document.getElementById('notice-file-name');
+    const noticeSend = document.getElementById('notice-send');
+    const noticeStatus = document.getElementById('notice-status');
+    const sentList = document.getElementById('sent-list');
+    const sentRefresh = document.getElementById('sent-refresh');
+    let selectedNoticeUser = null;
+    let searchTimeout = null;
+    const supportNew = document.getElementById('support-new');
+    const supportDone = document.getElementById('support-done');
+    const refreshSupport = document.getElementById('refresh-support');
+    const tabs = document.querySelectorAll('.tab');
+    const views = document.querySelectorAll('.view-section');
+
+    function activateTab(name){
+      tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+      views.forEach(v => v.classList.toggle('hidden', v.dataset.tab !== name));
+    }
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', ()=> activateTab(tab.dataset.tab));
+    });
+    activateTab('kyc');
+
+    function statusBadge(status){
+      const s = status.toLowerCase();
+      if (s === 'approved') return `<span class="status approved"><i class="bi bi-check-circle"></i>Approved</span>`;
+      if (s === 'rejected') return `<span class="status rejected"><i class="bi bi-x-circle"></i>Rejected</span>`;
+      return `<span class="status pending"><i class="bi bi-clock-history"></i>Pending</span>`;
+    }
+
+    function rowCheckbox(id){
+      return `<input type="checkbox" class="row-select" data-id="${id}">`;
+    }
+
+    function actionButtons(item){
+      return `
+        <div class="actions">
+          <button class="btn btn-view" data-id="${item.id}" data-action="view"><i class="bi bi-eye"></i> View</button>
+          <button class="btn btn-approve" data-id="${item.id}" data-action="approved">Approve</button>
+          <button class="btn btn-reject" data-id="${item.id}" data-action="rejected">Reject</button>
+        </div>`;
+    }
+
+    function notePrompt(defaultNote=''){
+      return prompt('Optional note for audit:', defaultNote || '');
+    }
+
+    async function loadKyc(){
+      bodyEl.innerHTML = `<tr><td colspan="6" class="empty">Loading...</td></tr>`;
+      const params = new URLSearchParams();
+      if (statusFilter.value) params.set('status', statusFilter.value);
+      if (searchFilter.value) params.set('search', searchFilter.value);
+      try {
+        const res = await fetch('/api/admin/kyc_requests?'+params.toString(), { credentials:'include' });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        const items = data.items || [];
+        if (!items.length) {
+          bodyEl.innerHTML = `<tr><td colspan="6" class="empty">No KYC requests found.</td></tr>`;
+          return;
+        }
+        bodyEl.innerHTML = items.map(item => `
+          <tr>
+            <td>${rowCheckbox(item.id)}</td>
+            <td><div><strong>${item.full_name || item.user_name || 'Unknown'}</strong></div><div class="muted small">${item.user_email || 'n/a'}</div></td>
+            <td><div>${item.dob || 'n/a'}</div><div class="muted small">${item.gender || ''}</div></td>
+            <td>${item.submitted_at || ''}</td>
+            <td>${statusBadge(item.status)}</td>
+            <td>${actionButtons(item)}</td>
+          </tr>
+        `).join('');
+        wireActions();
+      } catch (e) {
+        bodyEl.innerHTML = `<tr><td colspan="6" class="empty">Failed to load: ${e.message}</td></tr>`;
+      }
+    }
+
+    function wireActions(){
+      bodyEl.querySelectorAll('button[data-action]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-id');
+          const action = btn.getAttribute('data-action');
+          if (action === 'view') { openDrawer(id); return; }
+          const note = notePrompt('');
+          await saveDecision([id], action, note);
+        });
+      });
+    }
+
+    async function saveDecision(ids, status, note){
+      try {
+        const payload = { ids: ids.map(Number), status, note: note || '' };
+        const res = await fetch('/api/admin/kyc_requests/bulk_decision', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          credentials:'include',
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error(await res.text());
+        await loadKyc();
+      } catch (e) {
+        alert('Update failed: ' + e.message);
+        await loadKyc();
+      }
+    }
+
+    async function openDrawer(id){
+      drawer.classList.remove('hidden');
+      drawerDetail.innerHTML = '<div class="muted">Loading...</div>';
+      try {
+        const res = await fetch('/api/admin/kyc_requests?status=&search=&id='+id, { credentials:'include' });
+        const listRes = await fetch('/api/admin/kyc_requests', { credentials:'include' });
+        const data = await listRes.json();
+        const item = (data.items || []).find(x => x.id === id*1);
+        if (!item) { drawerDetail.innerHTML = '<div class="muted">Not found</div>'; return; }
+        drawerDetail.innerHTML = `
+          <div class="muted small">Submitted ${item.submitted_at || ''}</div>
+          <div class="pill">${statusBadge(item.status)}</div>
+          <p><strong>${item.full_name || item.user_name}</strong><br><span class="muted small">${item.user_email || ''}</span></p>
+          <p><strong>DOB:</strong> ${item.dob || 'n/a'} | <strong>Gender:</strong> ${item.gender || ''}</p>
+          <p><strong>Address:</strong> ${item.address || ''}</p>
+          <div class="grid">
+            <div>
+              <div class="muted small">Front ID</div>
+              <img class="preview" src="${item.front_url}" onerror="this.src=''" alt="front">
+            </div>
+            <div>
+              <div class="muted small">Back ID</div>
+              <img class="preview" src="${item.back_url}" onerror="this.src=''" alt="back">
+            </div>
+          </div>
+          <div style="margin-top:12px;">
+            <div class="muted small">Admin note</div>
+            <textarea class="note-box" id="drawer-note">${item.admin_note || ''}</textarea>
+          </div>
+          <div class="actions" style="margin-top:12px;">
+            <button class="btn btn-approve" id="drawer-approve">Approve</button>
+            <button class="btn btn-reject" id="drawer-reject">Reject</button>
+          </div>
+        `;
+        document.getElementById('drawer-approve').onclick = async ()=>{
+          const note = document.getElementById('drawer-note').value;
+          await saveDecision([id], 'approved', note);
+          drawer.classList.add('hidden');
+        };
+        document.getElementById('drawer-reject').onclick = async ()=>{
+          const note = document.getElementById('drawer-note').value;
+          await saveDecision([id], 'rejected', note);
+          drawer.classList.add('hidden');
+        };
+      } catch (e) {
+        drawerDetail.innerHTML = '<div class="muted">Failed to load</div>';
+      }
+    }
+
+    closeDrawer.addEventListener('click', ()=> drawer.classList.add('hidden'));
+    refreshBtn.addEventListener('click', loadKyc);
+    statusFilter.addEventListener('change', loadKyc);
+    searchFilter.addEventListener('change', loadKyc);
+    exportBtn.addEventListener('click', ()=> { window.location = '/api/admin/kyc_export'; });
+
+    selectAll.addEventListener('change', ()=>{
+      document.querySelectorAll('.row-select').forEach(cb=> cb.checked = selectAll.checked);
+    });
+
+    function selectedIds(){
+      return Array.from(document.querySelectorAll('.row-select:checked')).map(cb=> Number(cb.getAttribute('data-id')));
+    }
+
+    bulkApprove.addEventListener('click', async ()=>{
+      const ids = selectedIds();
+      if (!ids.length) { alert('Select at least one row'); return; }
+      const note = notePrompt('');
+      await saveDecision(ids, 'approved', note);
+    });
+
+    bulkReject.addEventListener('click', async ()=>{
+      const ids = selectedIds();
+      if (!ids.length) { alert('Select at least one row'); return; }
+      const note = notePrompt('');
+      await saveDecision(ids, 'rejected', note);
+    });
+
+    // Users
+    async function loadUsers(){
+      usersBody.innerHTML = `<tr><td colspan="5" class="empty">Loading...</td></tr>`;
+      try {
+        const res = await fetch('/api/admin/users', { credentials:'include' });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        const items = data.items || [];
+        if (!items.length) { usersBody.innerHTML = `<tr><td colspan="5" class="empty">No users</td></tr>`; return; }
+        usersBody.innerHTML = items.map(u => `
+          <tr>
+            <td><div><strong>${u.full_name}</strong></div><div class="muted small">${u.email}</div></td>
+            <td>
+              <select data-id="${u.id}" class="role-select">
+                <option value="student" ${u.role==='student'?'selected':''}>student</option>
+                <option value="teacher" ${u.role==='teacher'?'selected':''}>teacher</option>
+                <option value="admin" ${u.role==='admin'?'selected':''}>admin</option>
+              </select>
+            </td>
+            <td><label class="switch"><input type="checkbox" class="active-toggle" data-id="${u.id}" ${u.active? 'checked':''}> Active</label></td>
+            <td>${u.verified ? '<span class="pill"><i class="bi bi-shield-check"></i>Verified</span>' : '<span class="pill" style="background:#fee2e2; color:#b91c1c;"><i class="bi bi-shield-exclamation"></i>Unverified</span>'}</td>
+            <td class="actions">
+              <button class="btn btn-view impersonate" data-id="${u.id}"><i class="bi bi-person-arrows"></i> Impersonate</button>
+              <button class="btn btn-refresh resetpw" data-id="${u.id}"><i class="bi bi-key"></i> Reset PW</button>
+            </td>
+          </tr>
+        `).join('');
+        wireUserActions();
+      } catch (e) {
+        usersBody.innerHTML = `<tr><td colspan="5" class="empty">Failed: ${e.message}</td></tr>`;
+      }
+    }
+
+    function wireUserActions(){
+      document.querySelectorAll('.role-select').forEach(sel => {
+        sel.addEventListener('change', async ()=>{
+          const id = sel.getAttribute('data-id');
+          const role = sel.value;
+          await fetch(`/api/admin/users/${id}/role`, { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body: JSON.stringify({ role }) });
+        });
+      });
+      document.querySelectorAll('.active-toggle').forEach(cb => {
+        cb.addEventListener('change', async ()=>{
+          const id = cb.getAttribute('data-id');
+          await fetch(`/api/admin/users/${id}/active`, { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body: JSON.stringify({ active: cb.checked }) });
+        });
+      });
+      document.querySelectorAll('.impersonate').forEach(btn => {
+        btn.addEventListener('click', async ()=>{
+          const id = btn.getAttribute('data-id');
+          const res = await fetch('/api/admin/impersonate', { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body: JSON.stringify({ user_id: Number(id) }) });
+          if (res.ok) { alert('Impersonating user '+id); window.location.href='/'; } else { alert('Failed'); }
+        });
+      });
+      document.querySelectorAll('.resetpw').forEach(btn => {
+        btn.addEventListener('click', async ()=>{
+          const id = btn.getAttribute('data-id');
+          const res = await fetch(`/api/admin/users/${id}/reset_password`, { method:'POST', credentials:'include' });
+          if (res.ok) {
+            const data = await res.json();
+            alert('Temporary password: ' + data.temporary_password);
+          } else {
+            alert('Reset failed');
+          }
+        });
+      });
+    }
+
+    // Notices
+    function renderNoticeSuggestions(items){
+      if (!items.length) { noticeSuggestions.innerHTML = '<div class="muted small" style="padding:8px 10px;">No matches</div>'; return; }
+      noticeSuggestions.innerHTML = items.map(u => {
+        const role = (u.role || 'student').toLowerCase();
+        const roleClr = role === 'admin' ? '#f97316' : (role === 'teacher' ? '#2563eb' : '#6b7280');
+        const kyc = (u.kyc_status || 'unverified').toLowerCase();
+        const kycLabel = kyc === 'approved' ? 'KYC approved' : (kyc === 'pending' ? 'KYC pending' : (kyc === 'rejected' ? 'KYC rejected' : 'KYC unverified'));
+        const kycClr = kyc === 'approved' ? '#16a34a' : (kyc === 'pending' ? '#f59e0b' : (kyc === 'rejected' ? '#dc2626' : '#94a3b8'));
+        return `<div class="suggestion" data-id="${u.id}" data-label="${u.full_name} (${u.email})">
+          <div><strong>${u.full_name}</strong> <span class="muted small">${u.email}</span></div>
+          <div style="display:flex; gap:6px; margin-top:4px; flex-wrap:wrap;">
+            <span class="pill" style="background:${roleClr}1a; color:${roleClr};">${role}</span>
+            <span class="pill" style="background:${kycClr}1a; color:${kycClr};">${kycLabel}</span>
+          </div>
+        </div>`;
+      }).join('');
+      noticeSuggestions.querySelectorAll('.suggestion').forEach(s => {
+        s.addEventListener('click', ()=>{
+          selectedNoticeUser = Number(s.getAttribute('data-id'));
+          noticeSelected.textContent = s.getAttribute('data-label');
+          noticeSuggestions.innerHTML = '';
+        });
+      });
+    }
+
+    async function searchNoticeUsers(term){
+      try {
+        const res = await fetch('/api/admin/users/search?q=' + encodeURIComponent(term), { credentials:'include' });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        renderNoticeSuggestions(data.items || []);
+      } catch (e) {
+        noticeSuggestions.innerHTML = '<div class="muted small" style="padding:8px 10px;">Search failed</div>';
+      }
+    }
+
+    noticeSearch.addEventListener('input', ()=>{
+      const term = noticeSearch.value.trim();
+      if (searchTimeout) clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(()=>{
+        if (term.length < 2) { noticeSuggestions.innerHTML = ''; return; }
+        searchNoticeUsers(term);
+      }, 200);
+    });
+
+    noticeFile.addEventListener('change', ()=>{
+      const file = noticeFile.files[0];
+      noticeFileName.textContent = file ? file.name : 'Optional file/image';
+    });
+
+    noticeSend.addEventListener('click', async ()=>{
+      if (!selectedNoticeUser) { alert('Select a user to notify'); return; }
+      const title = noticeTitle.value.trim();
+      const body = noticeBody.value.trim();
+      if (!title || !body) { alert('Title and message are required'); return; }
+      const fd = new FormData();
+      fd.append('user_id', String(selectedNoticeUser));
+      fd.append('title', title);
+      fd.append('body', body);
+      if (noticeFile.files[0]) fd.append('attachment', noticeFile.files[0]);
+      noticeSend.disabled = true;
+      noticeStatus.textContent = 'Sending...';
+      try {
+        const res = await fetch('/api/admin/notifications', { method:'POST', body: fd, credentials:'include' });
+        if (!res.ok) throw new Error(await res.text());
+        noticeStatus.textContent = 'Sent ✓';
+        noticeSend.disabled = false;
+        noticeTitle.value = '';
+        noticeBody.value = '';
+        noticeFile.value = '';
+        noticeFileName.textContent = 'Optional file/image';
+        loadSentNotices();
+      } catch (e) {
+        noticeStatus.textContent = 'Failed: ' + e.message;
+        noticeSend.disabled = false;
+      }
+    });
+
+    // Support requests
+    function renderSupport(container, items, done){
+      if (!items.length) { container.innerHTML = '<div class="muted small">None</div>'; return; }
+      container.innerHTML = items.map(it => {
+        const roleClr = it.role === 'admin' ? '#f97316' : (it.role === 'teacher' ? '#2563eb' : '#6b7280');
+        const kyc = (it.kyc_status || 'unverified').toLowerCase();
+        const kycClr = kyc === 'approved' ? '#16a34a' : (kyc === 'pending' ? '#f59e0b' : (kyc === 'rejected' ? '#dc2626' : '#94a3b8'));
+        const kycLabel = kyc === 'approved' ? 'KYC approved' : (kyc === 'pending' ? 'KYC pending' : (kyc === 'rejected' ? 'KYC rejected' : 'KYC unverified'));
+        const attach = it.attachment_url ? `<a href="${it.attachment_url}" target="_blank">Attachment</a>` : '';
+        const btn = done ? `<button class="btn btn-refresh" data-id="${it.id}" data-action="new">Mark as new</button>` : `<button class="btn btn-approve" data-id="${it.id}" data-action="done">Mark done</button>`;
+        return `<div class="support-item">
+          <div><strong>${it.user_name || 'Unknown'}</strong> <span class="muted small">${it.user_email || ''}</span></div>
+          <div style="display:flex; gap:6px; margin:6px 0; flex-wrap:wrap;">
+            <span class="pill small" style="background:${roleClr}1a; color:${roleClr};">${it.role}</span>
+            <span class="pill small" style="background:${kycClr}1a; color:${kycClr};">${kycLabel}</span>
+          </div>
+          <div class="muted" style="white-space:pre-wrap;">${it.body || ''}</div>
+          <div class="muted small" style="margin-top:4px;">${it.created_at || ''} ${attach}</div>
+          <div style="margin-top:6px;">${btn}</div>
+        </div>`;
+      }).join('');
+
+      container.querySelectorAll('button[data-action]').forEach(b => {
+        b.addEventListener('click', async ()=>{
+          const id = b.getAttribute('data-id');
+          const status = b.getAttribute('data-action');
+          await fetch(`/api/admin/support_requests/${id}/status`, { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body: JSON.stringify({ status }) });
+          await loadSupport();
+        });
+      });
+    }
+
+    async function loadSupport(){
+      const [newRes, doneRes] = await Promise.all([
+        fetch('/api/admin/support_requests?status=new', { credentials:'include' }),
+        fetch('/api/admin/support_requests?status=done', { credentials:'include' })
+      ]);
+      const newData = newRes.ok ? await newRes.json() : { items: [] };
+      const doneData = doneRes.ok ? await doneRes.json() : { items: [] };
+      renderSupport(supportNew, newData.items || [], false);
+      renderSupport(supportDone, doneData.items || [], true);
+    }
+
+    refreshSupport.addEventListener('click', loadSupport);
+
+    // Sent notices list
+    function renderSent(items){
+      if (!items.length) { sentList.innerHTML = '<div class="muted small">No sent notices</div>'; return; }
+      sentList.innerHTML = items.map(it => {
+        const attach = it.attachment_url ? `<a href="${it.attachment_url}" target="_blank">Attachment</a>` : '';
+        return `<div class="support-item">
+          <div style="display:flex; justify-content:space-between; gap:6px; align-items:center;">
+            <div>
+              <div><strong>${it.title || 'Notice'}</strong></div>
+              <div class="muted small">To: ${it.user_name || ''} (${it.user_email || ''})</div>
+            </div>
+            <div class="muted small">${new Date(it.created_at).toLocaleString()}</div>
+          </div>
+          <div class="muted" style="margin-top:6px; white-space:pre-wrap;">${it.body || ''}</div>
+          <div class="muted small" style="margin-top:4px; display:flex; gap:10px; align-items:center;">${attach}</div>
+          <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn btn-refresh sent-edit" data-id="${it.id}">Edit</button>
+            <button class="btn btn-reject sent-delete" data-id="${it.id}">Delete</button>
+          </div>
+        </div>`;
+      }).join('');
+
+      sentList.querySelectorAll('.sent-edit').forEach(btn => {
+        btn.addEventListener('click', async ()=>{
+          const id = btn.getAttribute('data-id');
+          const notice = items.find(x => x.id === Number(id));
+          const newTitle = prompt('Edit title', notice?.title || '');
+          if (newTitle === null) return;
+          const newBody = prompt('Edit body', notice?.body || '');
+          if (newBody === null) return;
+          const removeAttach = notice?.attachment_url ? confirm('Remove attachment? OK = remove, Cancel = keep') : false;
+          await fetch(`/api/admin/notifications/${id}/update`, {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            credentials:'include',
+            body: JSON.stringify({ title: newTitle, body: newBody, remove_attachment: removeAttach })
+          });
+          await loadSentNotices();
+        });
+      });
+
+      sentList.querySelectorAll('.sent-delete').forEach(btn => {
+        btn.addEventListener('click', async ()=>{
+          const id = btn.getAttribute('data-id');
+          if (!confirm('Delete this notice?')) return;
+          await fetch(`/api/admin/notifications/${id}/delete`, { method:'POST', credentials:'include' });
+          await loadSentNotices();
+        });
+      });
+    }
+
+    async function loadSentNotices(){
+      sentList.innerHTML = '<div class="muted small">Loading...</div>';
+      try {
+        const res = await fetch('/api/admin/notifications', { credentials:'include' });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        renderSent(data.items || []);
+      } catch (e) {
+        sentList.innerHTML = `<div class="muted small">Failed to load: ${e.message}</div>`;
+      }
+    }
+
+    sentRefresh.addEventListener('click', loadSentNotices);
+
+    usersRefresh.addEventListener('click', loadUsers);
+
+    // init
+    loadKyc();
+    loadUsers();
+    loadSupport();
+    loadSentNotices();
+  </script>
+</body>
+</html>

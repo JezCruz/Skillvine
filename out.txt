@@ -1,0 +1,4 @@
+Migrations applied or already up-to-date
+Starting server at http://127.0.0.1:8080/
+Connected to DATABASE_URL successfully (attempt 1)
+Database connected (host: localhost)

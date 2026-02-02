@@ -11,7 +11,9 @@ async function api(path, opts={}){
 
 async function loadProfile(){
   const p = await api('/api/profile');
-  document.getElementById('email_box').textContent = p.email + (p.email_verified? ' (verified)':' (unverified)');
+  const email = p.email || '';
+  document.getElementById('email_display').value = email;
+  document.getElementById('email_verified_badge').textContent = email ? (p.email_verified ? 'verified' : 'unverified') : '';
   document.getElementById('full_name').value = p.full_name || '';
   document.getElementById('tv_status').textContent = p.teacher_verification || 'Not Requested';
   document.getElementById('view_as_select').value = (p.view_as || p.role || 'student');
@@ -63,4 +65,9 @@ window.addEventListener('load', ()=>{
   document.getElementById('upload_id_form').addEventListener('submit', uploadId);
   document.getElementById('apply_view_as').addEventListener('click', ()=>applyViewAs(false));
   document.getElementById('save_role').addEventListener('click', ()=>applyViewAs(true));
+  document.getElementById('copy_email_btn').addEventListener('click', ()=>{
+    const email = document.getElementById('email_display').value;
+    if(!email) return;
+    navigator.clipboard.writeText(email).catch(()=>{});
+  });
 });

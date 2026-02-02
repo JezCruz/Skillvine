@@ -1,6 +1,7 @@
 # Ignore environment files containing secrets
 .env
 .env.local
+.cookies.txt
 
 # Rust/Cargo
 /target

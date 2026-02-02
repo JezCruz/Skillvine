@@ -38,6 +38,16 @@
       <i class="bi bi-list"></i>
     </button>
     <h1 class="topbar-title" id="topbar-title">Teacher Dashboard</h1>
+    <div class="topbar-actions">
+      <div class="notif-bell" id="notif-bell" title="Notifications">
+        <i class="bi bi-bell"></i>
+        <span class="notif-dot hidden" id="notif-dot"></span>
+      </div>
+      <div class="profile-chip" id="profile-chip">
+        <img id="profile-avatar" class="avatar" src="/static/images/default-avatar.svg" alt="avatar">
+        <span id="profile-name">Profile</span>
+      </div>
+    </div>
   </div>
 
   <!-- Content -->
@@ -52,6 +62,725 @@
   </div>
 
 <script>
+  // Profile modal logic
+  const profileChip = document.getElementById('profile-chip');
+  const notifBell = document.getElementById('notif-bell');
+  const notifDot = document.getElementById('notif-dot');
+  let openVerifyBtn;
+  const modal = document.createElement('div');
+  modal.className = 'profile-modal hidden';
+  modal.innerHTML = `
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Profile</h3>
+        <button id="close-modal" class="close-btn">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="avatar-wrap">
+          <img id="avatar-preview" class="avatar large" src="/static/images/default-avatar.svg" alt="avatar">
+          <label class="upload-btn">Change Photo
+            <input type="file" id="avatar-file" accept="image/*" hidden>
+          </label>
+        </div>
+        <label>Full Name</label>
+        <input type="text" id="full-name-input" placeholder="Your name">
+        <label>Email (read-only)</label>
+        <input type="email" id="email-readonly" disabled>
+        <label>Birthday</label>
+        <input type="date" id="birthday-input">
+        <hr>
+        <div class="inline-actions">
+          <div>
+            <p class="muted small">Need to withdraw? Verify your identity.</p>
+            <button class="btn kyc" id="open-verify">KYC</button>
+            <button class="btn secondary hidden" id="retry-kyc">Submit New KYC</button>
+            <div id="kyc-status-text" class="muted small"></div>
+          </div>
+        </div>
+        <hr>
+        <div class="report-box">
+          <label>Submit a report/request to management</label>
+          <textarea id="support-body" placeholder="Describe the issue" rows="3"></textarea>
+          <div class="attach-line">
+            <label class="upload-btn" for="support-file" style="margin:0;">Attach file (max 25MB)</label>
+            <input type="file" id="support-file" hidden accept="image/*,application/pdf">
+            <span class="muted small" id="support-file-name">Optional</span>
+          </div>
+          <button class="btn primary" id="support-send">Submit Report</button>
+        </div>
+        <hr>
+        <label>Change Password</label>
+        <input type="password" id="old-pass" placeholder="Current password">
+        <input type="password" id="new-pass" placeholder="New password">
+      </div>
+      <div class="modal-actions">
+        <button id="cancel-modal" class="btn secondary">Cancel</button>
+        <button id="save-profile" class="btn primary">Save</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  openVerifyBtn = modal.querySelector('#open-verify');
+    const emailReadonly = modal.querySelector('#email-readonly');
+    const supportBody = modal.querySelector('#support-body');
+    const supportFile = modal.querySelector('#support-file');
+    const supportFileName = modal.querySelector('#support-file-name');
+    const supportSend = modal.querySelector('#support-send');
+
+  const state = { profile: null };
+  let kycLocked = false;
+  let kycStatus = null; // pending | approved | rejected | null
+  let notifications = [];
+  let notifWs = null;
+  let unreadCount = 0;
+
+  async function api(path, opts={}) {
+    const res = await fetch(path, { credentials:'include', ...opts });
+    if (!res.ok) throw new Error(await res.text());
+    const ct = res.headers.get('content-type')||'';
+    return ct.includes('application/json') ? res.json() : res.text();
+  }
+
+  async function loadProfile() {
+    try {
+      const data = await api('/api/profile');
+      state.profile = data;
+      document.getElementById('profile-name').textContent = data.full_name || 'Profile';
+      emailReadonly.value = data.email || '';
+      const avatarUrl = '/api/avatar';
+      const avatarImg = document.getElementById('profile-avatar');
+      const previewImg = document.getElementById('avatar-preview');
+      avatarImg.onerror = () => { avatarImg.src = '/static/images/default-avatar.svg'; };
+      previewImg.onerror = () => { previewImg.src = '/static/images/default-avatar.svg'; };
+      avatarImg.src = avatarUrl;
+      previewImg.src = avatarUrl;
+      document.getElementById('full-name-input').value = data.full_name || '';
+      if (data.birthday) document.getElementById('birthday-input').value = data.birthday;
+      kycStatus = data.teacher_verification && data.teacher_verification.status ? data.teacher_verification.status.toLowerCase() : null;
+      applyKycLockUI();
+    } catch (e) {
+      console.error('profile load failed', e);
+    }
+  }
+
+  async function saveProfile() {
+    const full_name = document.getElementById('full-name-input').value.trim();
+    const birthday = document.getElementById('birthday-input').value;
+    if (full_name) {
+      await api('/api/update_profile', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ full_name, birthday }) });
+    }
+    const oldp = document.getElementById('old-pass').value;
+    const newp = document.getElementById('new-pass').value;
+    if (oldp && newp) {
+      await api('/api/change_password', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ old_password: oldp, new_password: newp }) });
+    }
+    const file = document.getElementById('avatar-file').files[0];
+    if (file) {
+      const form = new FormData();
+      form.append('avatar_file', file);
+      await fetch('/api/upload_avatar', { method:'POST', body: form, credentials:'include' });
+    }
+    await loadProfile();
+    closeModal();
+  }
+
+  function openModal() { modal.classList.remove('hidden'); }
+  function closeModal() { modal.classList.add('hidden'); document.getElementById('old-pass').value=''; document.getElementById('new-pass').value=''; }
+
+  profileChip.addEventListener('click', () => { openModal(); });
+  modal.querySelector('#close-modal').addEventListener('click', closeModal);
+  modal.querySelector('#cancel-modal').addEventListener('click', closeModal);
+  modal.querySelector('#save-profile').addEventListener('click', async () => {
+    try { await saveProfile(); } catch (e) { alert('Save failed: ' + e.message); }
+  });
+  document.getElementById('avatar-file').addEventListener('change', (e)=>{
+    const f = e.target.files[0];
+    if (f) {
+      const url = URL.createObjectURL(f);
+      document.getElementById('avatar-preview').src = url;
+    }
+  });
+
+  // basic styles for modal/avatar
+  const style = document.createElement('style');
+  style.textContent = `
+    .profile-chip { display:flex; align-items:center; gap:8px; margin-left:auto; cursor:pointer; padding:6px 10px; border-radius:20px; background:#f5f7fb; }
+    .avatar { width:32px; height:32px; border-radius:50%; object-fit:cover; }
+    .avatar.large { width:96px; height:96px; }
+    .profile-modal { position:fixed; inset:0; background:rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; z-index:1000; }
+    .profile-modal.hidden { display:none; }
+    .modal-card { background:#fff; padding:16px; border-radius:12px; width:320px; box-shadow:0 10px 40px rgba(0,0,0,0.12); display:flex; flex-direction:column; gap:12px; }
+    .modal-header { display:flex; justify-content:space-between; align-items:center; }
+    .close-btn { background:none; border:none; font-size:20px; cursor:pointer; }
+    .modal-body { display:flex; flex-direction:column; gap:8px; }
+    .modal-body input { width:100%; padding:8px; border:1px solid #e0e0e0; border-radius:8px; }
+    .avatar-wrap { display:flex; align-items:center; gap:12px; }
+    .upload-btn { background:#eef2ff; border:1px dashed #7c3aed; padding:8px 12px; border-radius:8px; cursor:pointer; font-size:12px; }
+    .modal-actions { display:flex; justify-content:flex-end; gap:8px; }
+    .btn { padding:8px 12px; border-radius:8px; border:none; cursor:pointer; }
+    .btn.primary { background:#7c3aed; color:#fff; }
+    .btn.secondary { background:#f3f4f6; color:#111; }
+    .btn.kyc { background:#0ea5e9; color:#fff; }
+    .btn.pending { background:#f97316; color:#fff; display:inline-flex; align-items:center; gap:6px; }
+    .btn.pending i { font-size:14px; line-height:1; }
+    .btn.rejected { background:#dc2626; color:#fff; }
+    .btn.approved { background:#16a34a; color:#fff; display:inline-flex; align-items:center; gap:6px; }
+    .btn:disabled { opacity:0.6; cursor:not-allowed; }
+    .topbar-actions { margin-left:auto; display:flex; align-items:center; gap:12px; }
+    .notif-bell { position:relative; width:40px; height:40px; border-radius:12px; background:#f3f4f6; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 4px 10px rgba(0,0,0,0.08); }
+    .notif-bell i { font-size:18px; color:#111827; }
+    .notif-dot { position:absolute; top:8px; right:8px; width:10px; height:10px; border-radius:999px; background:#22c55e; box-shadow:0 0 0 3px #fff; }
+    .notif-panel { position:fixed; top:64px; right:18px; width:320px; max-height:420px; background:#fff; border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,0.15); z-index:1300; display:flex; flex-direction:column; }
+    .notif-panel.hidden { display:none; }
+    .notif-header { display:flex; align-items:center; justify-content:space-between; padding:12px; border-bottom:1px solid #e5e7eb; }
+    .notif-list { overflow-y:auto; flex:1; }
+    .notif-item { padding:12px; border-bottom:1px solid #f1f5f9; cursor:pointer; transition:background 0.2s; }
+    .notif-item:hover { background:#f8fafc; }
+    .notif-item.unread { background:#ecfeff; }
+    .notif-item h4 { margin:0 0 4px 0; font-size:14px; color:#0f172a; }
+    .notif-item p { margin:0; color:#475569; font-size:13px; }
+    .notif-time { font-size:12px; color:#94a3b8; margin-top:6px; display:block; }
+    .notif-attachment { font-size:12px; color:#2563eb; margin-top:6px; display:inline-flex; gap:6px; align-items:center; }
+    .notif-actions { display:flex; align-items:center; gap:8px; }
+    .notif-toast-host { position:fixed; top:20px; right:20px; display:flex; flex-direction:column; gap:8px; z-index:1400; }
+    .notif-toast { background:#0f172a; color:#fff; padding:12px 14px; border-radius:12px; min-width:260px; box-shadow:0 18px 50px rgba(0,0,0,0.25); animation: slide-in 0.25s ease-out; }
+    .notif-toast h4 { margin:0 0 4px 0; font-size:14px; }
+    .notif-toast p { margin:0; font-size:13px; color:#e2e8f0; }
+    .notice-card { width:80vw; max-width:960px; max-height:80vh; overflow-y:auto; box-shadow:0 24px 70px rgba(0,0,0,0.32); border:1px solid #e5e7eb; background:linear-gradient(135deg,#fff7f5 0%,#f8fafc 100%); }
+    .notice-body { white-space:pre-wrap; color:#1f2937; margin:14px 0; line-height:1.65; background:#fff; border:1px solid #f1f5f9; border-radius:14px; padding:16px; }
+    .notice-time { font-size:12px; color:#94a3b8; }
+    .notice-meta { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:6px; }
+    .notice-chip { padding:6px 12px; border-radius:999px; background:#fee2e2; color:#b91c1c; font-size:12px; }
+    .attachment-frame { display:flex; justify-content:center; align-items:center; background:#fff; padding:8px; border:1px solid #e5e7eb; border-radius:12px; margin-top:8px; }
+    .attachment-frame video, .attachment-frame img { max-width:100%; max-height:520px; display:block; margin:0 auto; border-radius:12px; object-fit:contain; }
+    @keyframes slide-in { from { transform:translateY(-8px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+    .report-box { display:flex; flex-direction:column; gap:8px; }
+    .report-box textarea { width:100%; padding:8px; border:1px solid #e0e0e0; border-radius:8px; resize:vertical; }
+    .attach-line { display:flex; align-items:center; gap:8px; }
+  `;
+  document.head.appendChild(style);
+
+  // Notifications panel & toast host
+  const notifPanel = document.createElement('div');
+  notifPanel.className = 'notif-panel hidden';
+  notifPanel.innerHTML = `
+    <div class="notif-header">
+      <div><strong>Notifications</strong></div>
+      <div class="notif-actions">
+        <button class="btn secondary" id="mark-all-read">Mark all read</button>
+        <button class="btn secondary" id="close-notif">×</button>
+      </div>
+    </div>
+    <div class="notif-list" id="notif-list"></div>
+  `;
+  document.body.appendChild(notifPanel);
+  const notifListEl = document.getElementById('notif-list');
+  const markAllReadBtn = document.getElementById('mark-all-read');
+  const closeNotifBtn = document.getElementById('close-notif');
+  const toastHost = document.createElement('div');
+  toastHost.className = 'notif-toast-host';
+  document.body.appendChild(toastHost);
+
+  // Notice viewer modal
+  const noticeModal = document.createElement('div');
+  noticeModal.className = 'profile-modal hidden';
+  noticeModal.innerHTML = `
+    <div class="modal-card notice-card">
+      <div class="modal-header">
+        <div>
+          <div class="muted small">Inbox • Notice</div>
+          <h3 id="notice-view-title" style="margin:4px 0 0 0;">Notice</h3>
+        </div>
+        <button id="notice-close" class="close-btn">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="notice-meta">
+          <span class="notice-chip">From Skillvine</span>
+          <div id="notice-view-time" class="notice-time"></div>
+        </div>
+        <div id="notice-view-body" class="notice-body"></div>
+        <div id="notice-view-attachment"></div>
+      </div>
+    </div>`;
+  document.body.appendChild(noticeModal);
+  const noticeTitleEl = document.getElementById('notice-view-title');
+  const noticeBodyEl = document.getElementById('notice-view-body');
+  const noticeTimeEl = document.getElementById('notice-view-time');
+  const noticeAttachmentEl = document.getElementById('notice-view-attachment');
+  const noticeClose = document.getElementById('notice-close');
+
+  // KYC modal
+  const kycModal = document.createElement('div');
+  kycModal.className = 'profile-modal hidden';
+  kycModal.innerHTML = `
+    <div class="modal-card wide">
+      <div class="modal-header">
+        <h3>Teacher Verification</h3>
+        <button id="close-kyc" class="close-btn">Cancel</button>
+      </div>
+      <div class="modal-body">
+        <label>Full Name *</label>
+        <input type="text" id="kyc-fullname" placeholder="Your full name" required>
+        <label>Date of Birth *</label>
+        <input type="date" id="kyc-dob" required>
+        <label>Gender *</label>
+        <div class="radio-group">
+          <label><input type="radio" name="kyc-gender" value="male"> Male</label>
+          <label><input type="radio" name="kyc-gender" value="female"> Female</label>
+        </div>
+        <label>Address *</label>
+        <input type="text" id="kyc-address" placeholder="Full address" required>
+
+        <div class="id-upload">
+          <div class="id-item">
+            <p>Front ID (max 25MB)</p>
+            <label class="upload-box" for="kyc-front">
+              <span class="upload-plus">+</span>
+              <img id="kyc-front-preview" class="id-preview hidden" alt="Front preview">
+              <input type="file" id="kyc-front" accept="image/*" hidden>
+            </label>
+            <button type="button" id="remove-front" class="remove-btn hidden" aria-label="Remove front ID">×</button>
+            <span id="kyc-front-name" class="muted">No file</span>
+          </div>
+          <div class="id-item">
+            <p>Back ID (max 25MB)</p>
+            <label class="upload-box" for="kyc-back">
+              <span class="upload-plus">+</span>
+              <img id="kyc-back-preview" class="id-preview hidden" alt="Back preview">
+              <input type="file" id="kyc-back" accept="image/*" hidden>
+            </label>
+            <button type="button" id="remove-back" class="remove-btn hidden" aria-label="Remove back ID">×</button>
+            <span id="kyc-back-name" class="muted">No file</span>
+          </div>
+        </div>
+
+        <div class="policy-box">
+          <p><strong>Data Privacy & Policy</strong></p>
+          <p class="muted small">By submitting, you agree to our KYC policy, data privacy, and withdrawal terms.</p>
+        </div>
+        <label class="checkbox-line"><input type="checkbox" id="kyc-agree"> I agree to the policy and terms.</label>
+      </div>
+      <div class="modal-actions">
+        <button id="submit-kyc" class="btn primary">Submit</button>
+      </div>
+    </div>`;
+  document.body.appendChild(kycModal);
+
+  const kycStyle = document.createElement('style');
+  kycStyle.textContent = `
+    .modal-card.wide { width: 420px; }
+    .id-upload { display:flex; gap:16px; }
+    .id-item { position:relative; }
+    .upload-box { width:120px; height:120px; border:2px dashed #cbd5e1; display:flex; align-items:center; justify-content:center; cursor:pointer; border-radius:12px; font-size:32px; color:#94a3b8; position:relative; overflow:hidden; }
+    .upload-box.filled { border-style:solid; color:transparent; }
+    .upload-plus { pointer-events:none; }
+    .remove-btn { position:absolute; top:-8px; right:-8px; width:24px; height:24px; border:none; border-radius:999px; background:#ef4444; color:#fff; cursor:pointer; box-shadow:0 6px 16px rgba(0,0,0,0.12); display:flex; align-items:center; justify-content:center; font-size:14px; }
+    .policy-box { background:#f8fafc; padding:10px; border-radius:8px; }
+    .checkbox-line { display:flex; align-items:center; gap:8px; }
+    .radio-group { display:flex; gap:12px; }
+    .muted { color:#6b7280; }
+    .muted.small { font-size:12px; }
+    .inline-actions { display:flex; align-items:center; justify-content:center; }
+    .inline-actions > div { text-align:center; width:100%; }
+    .id-preview { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius:10px; }
+    .hidden { display:none; }
+  `;
+  document.head.appendChild(kycStyle);
+
+  const retryKycBtn = document.getElementById('retry-kyc');
+  const kycStatusText = document.getElementById('kyc-status-text');
+
+  openVerifyBtn.addEventListener('click', ()=> {
+    if (kycStatus === 'pending') { alert('Status: Pending (Under Review)'); return; }
+    if (kycStatus === 'approved') { alert('KYC Approved'); return; }
+    kycModal.classList.remove('hidden');
+    applyKycLockUI();
+  });
+  retryKycBtn.addEventListener('click', ()=>{
+    kycStatus = null;
+    kycLocked = false;
+    clearFile('front');
+    clearFile('back');
+    kycModal.classList.remove('hidden');
+    applyKycLockUI();
+  });
+  document.getElementById('close-kyc').addEventListener('click', ()=> kycModal.classList.add('hidden'));
+  const truncateName = (name) => name.length > 18 ? name.slice(0, 15) + '...' : name;
+
+  const removeFrontBtn = document.getElementById('remove-front');
+  const removeBackBtn = document.getElementById('remove-back');
+
+  document.getElementById('kyc-front').addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    const nameEl = document.getElementById('kyc-front-name');
+    const prev = document.getElementById('kyc-front-preview');
+    const box = document.querySelector('label[for="kyc-front"]');
+    removeFrontBtn.classList.add('hidden');
+    if (file) {
+      nameEl.textContent = truncateName(file.name);
+      prev.src = URL.createObjectURL(file);
+      prev.classList.remove('hidden');
+      box.classList.add('filled');
+      removeFrontBtn.classList.remove('hidden');
+    } else {
+      nameEl.textContent = 'No file';
+      prev.classList.add('hidden');
+      prev.src = '';
+      box.classList.remove('filled');
+    }
+  });
+  document.getElementById('kyc-back').addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    const nameEl = document.getElementById('kyc-back-name');
+    const prev = document.getElementById('kyc-back-preview');
+    const box = document.querySelector('label[for="kyc-back"]');
+    removeBackBtn.classList.add('hidden');
+    if (file) {
+      nameEl.textContent = truncateName(file.name);
+      prev.src = URL.createObjectURL(file);
+      prev.classList.remove('hidden');
+      box.classList.add('filled');
+      removeBackBtn.classList.remove('hidden');
+    } else {
+      nameEl.textContent = 'No file';
+      prev.classList.add('hidden');
+      prev.src = '';
+      box.classList.remove('filled');
+    }
+  });
+
+  function clearFile(which) {
+    const input = document.getElementById(which === 'front' ? 'kyc-front' : 'kyc-back');
+    const nameEl = document.getElementById(which === 'front' ? 'kyc-front-name' : 'kyc-back-name');
+    const prev = document.getElementById(which === 'front' ? 'kyc-front-preview' : 'kyc-back-preview');
+    const box = document.querySelector(`label[for="kyc-${which}"]`);
+    const btn = which === 'front' ? removeFrontBtn : removeBackBtn;
+    input.value = '';
+    nameEl.textContent = 'No file';
+    prev.classList.add('hidden');
+    prev.src = '';
+    box.classList.remove('filled');
+    btn.classList.add('hidden');
+  }
+
+  removeFrontBtn.addEventListener('click', (e)=>{ e.stopPropagation(); clearFile('front'); });
+  removeBackBtn.addEventListener('click', (e)=>{ e.stopPropagation(); clearFile('back'); });
+
+  async function submitKyc(){
+    const full_name = document.getElementById('kyc-fullname').value.trim();
+    const dob = document.getElementById('kyc-dob').value;
+    const gender = [...document.querySelectorAll('input[name="kyc-gender"]')].find(r=>r.checked)?.value || '';
+    const address = document.getElementById('kyc-address').value.trim();
+    const agree = document.getElementById('kyc-agree').checked;
+    const front = document.getElementById('kyc-front').files[0];
+    const back = document.getElementById('kyc-back').files[0];
+    if (!full_name || !dob || !gender || !address || !front || !back || !agree) { alert('Complete all fields, files, and agreement.'); return; }
+    if (front.size > 25*1024*1024 || back.size > 25*1024*1024) { alert('Each file max 25MB'); return; }
+    const form = new FormData();
+    form.append('full_name', full_name);
+    form.append('dob', dob);
+    form.append('gender', gender);
+    form.append('address', address);
+    form.append('front_id', front);
+    form.append('back_id', back);
+    const res = await fetch('/api/teacher_verify_submit', { method:'POST', body: form, credentials:'include' });
+    if (!res.ok) { alert('Submit failed: '+await res.text()); return; }
+    alert('Submitted. Await admin review.');
+    lockKyc();
+    kycModal.classList.add('hidden');
+  }
+  document.getElementById('submit-kyc').addEventListener('click', ()=>{
+    submitKyc().catch(e=>alert('Submit error: '+e.message));
+  });
+
+  const submitKycBtn = document.getElementById('submit-kyc');
+  const kycInputs = [
+    document.getElementById('kyc-fullname'),
+    document.getElementById('kyc-dob'),
+    ...document.querySelectorAll('input[name="kyc-gender"]'),
+    document.getElementById('kyc-address'),
+    document.getElementById('kyc-front'),
+    document.getElementById('kyc-back'),
+    document.getElementById('kyc-agree'),
+  ];
+
+  function applyKycLockUI(){
+    if (kycStatus === 'pending' || kycLocked) {
+      submitKycBtn.disabled = true;
+      submitKycBtn.textContent = 'Submitted for review';
+      openVerifyBtn.disabled = false;
+      openVerifyBtn.innerHTML = '<i class="bi bi-clock-history"></i> Under Review';
+      openVerifyBtn.classList.add('pending');
+      openVerifyBtn.classList.remove('rejected');
+      openVerifyBtn.classList.remove('approved');
+      kycInputs.forEach(i => i.disabled = true);
+      removeFrontBtn.classList.add('hidden');
+      removeBackBtn.classList.add('hidden');
+      retryKycBtn.classList.add('hidden');
+      kycStatusText.textContent = 'Status: Pending';
+    } else if (kycStatus === 'approved') {
+      submitKycBtn.disabled = true;
+      openVerifyBtn.disabled = false;
+      openVerifyBtn.innerHTML = '<i class="bi bi-check-circle"></i> KYC Approved';
+      openVerifyBtn.classList.remove('pending');
+      openVerifyBtn.classList.remove('rejected');
+      openVerifyBtn.classList.add('approved');
+      kycInputs.forEach(i => i.disabled = true);
+      retryKycBtn.classList.add('hidden');
+      kycStatusText.textContent = 'Status: Approved';
+    } else if (kycStatus === 'rejected') {
+      submitKycBtn.disabled = false;
+      submitKycBtn.textContent = 'Submit';
+      openVerifyBtn.disabled = true;
+      openVerifyBtn.innerHTML = '<i class="bi bi-x-circle"></i> KYC Rejected';
+      openVerifyBtn.classList.remove('pending');
+      openVerifyBtn.classList.remove('approved');
+      openVerifyBtn.classList.add('rejected');
+      kycInputs.forEach(i => i.disabled = false);
+      retryKycBtn.classList.remove('hidden');
+      kycStatusText.textContent = 'Status: Rejected';
+    } else {
+      submitKycBtn.disabled = false;
+      submitKycBtn.textContent = 'Submit';
+      openVerifyBtn.disabled = false;
+      openVerifyBtn.textContent = 'KYC';
+      openVerifyBtn.classList.remove('pending');
+      openVerifyBtn.classList.remove('rejected');
+      openVerifyBtn.classList.remove('approved');
+      kycInputs.forEach(i => i.disabled = false);
+      retryKycBtn.classList.add('hidden');
+      kycStatusText.textContent = '';
+    }
+  }
+
+  function lockKyc(){
+    kycLocked = true;
+    kycStatus = 'pending';
+    applyKycLockUI();
+  }
+
+  // ---------- Notifications ----------
+  function renderNotifications(){
+    if (!notifications.length) {
+      notifListEl.innerHTML = '<div class="muted" style="padding:12px;">No notifications yet.</div>';
+    } else {
+      notifListEl.innerHTML = notifications.map(n => {
+        const readCls = n.read ? '' : 'unread';
+        const attachment = n.attachment_url ? `<a class="notif-attachment" href="${n.attachment_url}" target="_blank"><i class="bi bi-paperclip"></i>Attachment</a>` : '';
+        const body = (n.body || '').slice(0, 120);
+        return `<div class="notif-item ${readCls}" data-id="${n.id}" data-read="${n.read}">
+          <h4>${n.title || 'Notice'}</h4>
+          <p>${body}</p>
+          ${attachment}
+          <span class="notif-time">${new Date(n.created_at).toLocaleString()}</span>
+        </div>`;
+      }).join('');
+      notifListEl.querySelectorAll('.notif-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const id = Number(item.getAttribute('data-id'));
+          const notice = notifications.find(n => n.id === id);
+          if (notice) { openNotice(notice); }
+          if (item.getAttribute('data-read') !== 'true') {
+            markNotificationRead(id);
+            item.setAttribute('data-read', 'true');
+            item.classList.remove('unread');
+          }
+          notifPanel.classList.add('hidden');
+        });
+      });
+    }
+    unreadCount = notifications.filter(n => !n.read).length;
+    notifDot.classList.toggle('hidden', unreadCount === 0);
+  }
+
+  async function fetchNotifications(){
+    try {
+      const res = await fetch('/api/notifications', { credentials:'include' });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      notifications = data.items || [];
+      renderNotifications();
+    } catch (e) {
+      console.error('notif load failed', e);
+    }
+  }
+
+  async function markNotificationRead(id){
+    try {
+      await fetch(`/api/notifications/read/${id}`, { method:'POST', credentials:'include' });
+      notifications = notifications.map(n => n.id === id ? { ...n, read:true } : n);
+      renderNotifications();
+    } catch (e) {
+      console.error('mark read failed', e);
+    }
+  }
+
+  async function markAllNotificationsRead(){
+    try {
+      await fetch('/api/notifications/read_all', { method:'POST', credentials:'include' });
+      notifications = notifications.map(n => ({ ...n, read:true }));
+      renderNotifications();
+    } catch (e) {
+      console.error('mark all read failed', e);
+    }
+  }
+
+  function showToast(notif){
+    const el = document.createElement('div');
+    el.className = 'notif-toast';
+    el.innerHTML = `<h4>${notif.title || 'Notice'}</h4><p>${(notif.body || '').slice(0, 120)}</p>`;
+    toastHost.appendChild(el);
+    setTimeout(() => {
+      el.style.opacity = '0';
+      setTimeout(() => el.remove(), 400);
+    }, 4000);
+  }
+
+  async function openNotice(n){
+    noticeTitleEl.textContent = n.title || 'Notice';
+    noticeBodyEl.textContent = n.body || '';
+    noticeTimeEl.textContent = new Date(n.created_at).toLocaleString();
+    if (n.attachment_url) {
+      const url = n.attachment_url;
+      const lowerPath = (() => { try { return new URL(url, window.location.href).pathname.toLowerCase(); } catch(_) { return url.toLowerCase(); } })();
+      noticeAttachmentEl.innerHTML = '';
+      const label = document.createElement('div');
+      label.className = 'muted small';
+      label.textContent = 'Attachment';
+      noticeAttachmentEl.appendChild(label);
+
+      const renderLink = () => {
+        noticeAttachmentEl.innerHTML = `<a class="notif-attachment" href="${url}" target="_blank"><i class="bi bi-paperclip"></i>Open attachment</a>`;
+      };
+      const renderVideo = () => {
+        noticeAttachmentEl.innerHTML += `<div class="attachment-frame"><video controls style="width:100%; max-width:720px; max-height:520px;"><source src="${url}"></video></div>`;
+      };
+      const renderAudio = () => {
+        noticeAttachmentEl.innerHTML += `<audio controls style="width:100%; margin-top:6px;"><source src="${url}"></audio>`;
+      };
+      const renderPdf = () => {
+        noticeAttachmentEl.innerHTML += `<div style="margin-top:8px;"><object data="${url}" type="application/pdf" width="100%" height="420px" style="border:1px solid #e5e7eb; border-radius:12px;"></object></div>`;
+      };
+      const renderDoc = () => {
+        noticeAttachmentEl.innerHTML += `<div class="muted small" style="margin-top:6px; display:flex; align-items:center; gap:8px;"><i class="bi bi-file-earmark-text"></i><a href="${url}" target="_blank">Open file</a></div>`;
+      };
+      const renderImage = () => {
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = 'attachment';
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = '520px';
+        img.style.borderRadius = '12px';
+        img.style.border = '1px solid #e5e7eb';
+        img.style.marginTop = '0';
+        img.style.objectFit = 'contain';
+        img.onerror = renderLink;
+        const frame = document.createElement('div');
+        frame.className = 'attachment-frame';
+        frame.appendChild(img);
+        noticeAttachmentEl.appendChild(frame);
+      };
+
+      const guessedByHead = async () => {
+        try {
+          const head = await fetch(url, { method:'HEAD' });
+          const ct = (head.headers.get('content-type') || '').toLowerCase();
+          if (ct.startsWith('video/')) { renderVideo(); return true; }
+          if (ct.startsWith('audio/')) { renderAudio(); return true; }
+          if (ct.includes('pdf')) { renderPdf(); return true; }
+          if (ct.includes('msword') || ct.includes('officedocument') || ct.includes('sheet') || ct.includes('presentation')) { renderDoc(); return true; }
+        } catch (_) {}
+        return false;
+      };
+
+      if (lowerPath.match(/\.(mp4|webm|ogg)$/)) {
+        renderVideo();
+      } else if (lowerPath.match(/\.(mp3|wav|aac|m4a)$/)) {
+        renderAudio();
+      } else if (lowerPath.match(/\.(pdf)$/)) {
+        renderPdf();
+      } else if (lowerPath.match(/\.(doc|docx|ppt|pptx|xls|xlsx)$/)) {
+        renderDoc();
+      } else {
+        const hinted = await guessedByHead();
+        if (!hinted) {
+          renderImage();
+        }
+      }
+    } else {
+      noticeAttachmentEl.innerHTML = '';
+    }
+    noticeModal.classList.remove('hidden');
+  }
+  noticeClose.addEventListener('click', ()=> noticeModal.classList.add('hidden'));
+
+  function connectNotifWs(){
+    if (notifWs) { try { notifWs.close(); } catch(_){} }
+    const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    notifWs = new WebSocket(`${proto}://${window.location.host}/ws/notifications`);
+    notifWs.onmessage = (evt) => {
+      try {
+        const msg = JSON.parse(evt.data);
+        // Ensure unread so the green dot shows
+        msg.read = false;
+        notifications.unshift(msg);
+        if (notifications.length > 50) notifications.pop();
+        showToast(msg);
+        renderNotifications();
+      } catch (e) { console.error('ws parse', e); }
+    };
+    notifWs.onclose = () => {
+      setTimeout(connectNotifWs, 3000);
+    };
+  }
+
+  notifBell.addEventListener('click', ()=>{
+    notifPanel.classList.toggle('hidden');
+    if (!notifPanel.classList.contains('hidden')) {
+      markAllNotificationsRead();
+    }
+  });
+  closeNotifBtn.addEventListener('click', ()=> notifPanel.classList.add('hidden'));
+  markAllReadBtn.addEventListener('click', markAllNotificationsRead);
+
+  // Support request submission
+  supportFile.addEventListener('change', ()=>{
+    const f = supportFile.files[0];
+    supportFileName.textContent = f ? f.name : 'Optional';
+  });
+
+  supportSend.addEventListener('click', async ()=>{
+    const msg = supportBody.value.trim();
+    if (!msg) { alert('Please enter a message'); return; }
+    const fd = new FormData();
+    fd.append('body', msg);
+    const file = supportFile.files[0];
+    if (file) {
+      if (file.size > 25*1024*1024) { alert('File too large (max 25MB)'); return; }
+      fd.append('attachment', file);
+    }
+    supportSend.disabled = true;
+    supportSend.textContent = 'Sending...';
+    try {
+      const res = await fetch('/api/support_request', { method:'POST', body: fd, credentials:'include' });
+      if (!res.ok) throw new Error(await res.text());
+      alert('Report submitted');
+      supportBody.value = '';
+      supportFile.value = '';
+      supportFileName.textContent = 'Optional';
+    } catch (e) {
+      alert('Submit failed: ' + e.message);
+    } finally {
+      supportSend.disabled = false;
+      supportSend.textContent = 'Submit Report';
+    }
+  });
+
+  // init
+  applyKycLockUI();
+  loadProfile();
+  fetchNotifications();
+  connectNotifWs();
+
   const toggleBtn = document.getElementById('toggle-btn');
   const sidebar = document.getElementById('sidebar');
   const sidebarTitle = document.getElementById('sidebar-title');
