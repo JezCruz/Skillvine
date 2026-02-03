@@ -1,0 +1,15 @@
+# Ignore Rust build artifacts
+target
+**/target
+
+# Ignore local env files
+.env.local
+
+# Ignore git
+.git
+.gitignore
+
+# OS files
+.DS_Store
+Thumbs.db
+

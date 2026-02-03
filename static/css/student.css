@@ -42,6 +42,12 @@ body {
 .nav-links {
   list-style: none;
   padding: 0;
+
+  /* ✅ Make menu area scroll correctly in flex sidebar */
+  flex: 1;
+  min-height: 0; /* IMPORTANT */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .nav-links li a {
@@ -222,18 +228,152 @@ body {
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
-/* --- Responsive --- */
+/* =========================
+   Mobile Responsive Sidebar
+   ========================= */
+
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 950;
+}
+
+/* ✅ SINGLE mobile system: transform + .open
+   (Removed old .sidebar.active left:-240 behavior by overriding it here)
+*/
 @media (max-width: 768px) {
+
   .sidebar {
-    left: -240px;
+    height: 100dvh;          /* ✅ fixes bottom cut on mobile browsers */
+    overflow: hidden;        /* ✅ only nav-links scroll */
+    transform: translateX(-105%);
+    transition: transform 0.25s ease;
+    width: 240px;
+    left: 0;                 /* ensure not using negative left */
   }
-  .sidebar.active {
-    left: 0;
+
+  .sidebar.open {
+    transform: translateX(0);
   }
-  .content {
-    margin-left: 0;
+
+  .sidebar-overlay.show {
+    opacity: 1;
+    pointer-events: auto;
   }
+
+  /* ✅ Pin settings area to bottom, always visible */
+  .settings {
+    position: sticky;
+    bottom: 0;
+    background: #1E3A8A;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  }
+
+  /* allow submenu a bit more height on mobile */
+  .settings-submenu.open {
+    max-height: 220px;
+  }
+
+  /* Full width topbar/content */
   .topbar {
-    left: 0;
+    left: 0 !important;
+    width: 100% !important;
+  }
+
+  .content {
+    margin-left: 0 !important;
+    padding: 25px !important;
+  }
+
+  .content.expanded {
+    margin-left: 0 !important;
+  }
+
+  .topbar-title {
+    font-size: 16px;
+    max-width: 45vw;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Bigger tap targets */
+  .nav-links li a {
+    padding: 12px 16px;
+  }
+}
+
+
+/* =========================
+   Smaller Profile Modal
+   ========================= */
+
+/* Base modal size (desktop) */
+.profile-modal .modal-card {
+  width: 300px;          /* from ~320px */
+  padding: 14px;         /* tighter */
+  gap: 10px;
+}
+
+/* Header */
+.profile-modal .modal-header h3 {
+  font-size: 1.05rem;
+}
+
+/* Inputs */
+.profile-modal .modal-body input,
+.profile-modal .modal-body textarea {
+  padding: 7px 8px;
+  font-size: 0.9rem;
+}
+
+/* Avatar size */
+.profile-modal .avatar.large {
+  width: 80px;           /* from 96px */
+  height: 80px;
+}
+
+/* Buttons */
+.profile-modal .btn {
+  padding: 7px 10px;
+  font-size: 0.85rem;
+}
+
+/* Labels */
+.profile-modal label {
+  font-size: 0.85rem;
+}
+
+/* ---------- Mobile ---------- */
+@media (max-width: 768px) {
+  .profile-modal .modal-card {
+    width: 92vw;         /* fits screen nicely */
+    max-width: 320px;
+    padding: 12px;
+  }
+
+  .profile-modal .avatar.large {
+    width: 72px;
+    height: 72px;
+  }
+}
+
+
+/* =========================
+   Limit profile name on mobile
+   ========================= */
+
+@media (max-width: 768px) {
+  #profile-name {
+    max-width: 8ch;          /* exactly ~8 characters */
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    display: inline-block;
+    vertical-align: middle;
   }
 }

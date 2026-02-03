@@ -31,6 +31,7 @@
   </div>
 </div>
 
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
 
   <!-- Topbar -->
   <div class="topbar">
@@ -791,9 +792,20 @@
   const settingsToggle = document.querySelector('.settings-toggle');
   const settingsSubmenu = document.querySelector('.settings-submenu');
   const arrow = document.querySelector('.arrow');
+  const overlay = document.getElementById('sidebar-overlay');
 
-  // Sidebar collapse toggle
+  
+  // Sidebar collapse toggle + mobile slide
   toggleBtn.addEventListener('click', () => {
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+
+    if (isMobile) {
+      sidebar.classList.toggle('open');
+      overlay.classList.toggle('show', sidebar.classList.contains('open'));
+      return; // stop here so desktop classes don't run on mobile
+    }
+
+    // Desktop behavior (your existing)
     sidebar.classList.toggle('collapsed');
     content.classList.toggle('expanded');
     title.classList.toggle('stretched');
@@ -803,6 +815,22 @@
 
     sidebarTitle.textContent = sidebar.classList.contains('collapsed') ? 'SV' : 'Skillvine';
   });
+
+  // Tap overlay to close on mobile
+  overlay.addEventListener('click', () => {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('show');
+  });
+
+  // Prevent stuck state when resizing to desktop
+  window.addEventListener('resize', () => {
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    if (!isMobile) {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('show');
+    }
+  });
+
 
   // Settings dropdown animation
   settingsToggle.addEventListener('click', (e) => {

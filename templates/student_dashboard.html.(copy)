@@ -32,8 +32,6 @@
     </div>
   </div>
 
-  <div class="sidebar-overlay" id="sidebar-overlay"></div>
-
   <!-- Topbar -->
   <div class="topbar" id="topbar">
     <button class="toggle-btn" id="toggle-btn">
@@ -74,7 +72,11 @@
     const profileChip = document.getElementById('profile-chip');
     const notifBell = document.getElementById('notif-bell');
     const notifDot = document.getElementById('notif-dot');
-
+    const emailReadonly = document.getElementById('email-readonly');
+    const supportBody = document.getElementById('support-body');
+    const supportFile = document.getElementById('support-file');
+    const supportFileName = document.getElementById('support-file-name');
+    const supportSend = document.getElementById('support-send');
     const modal = document.createElement('div');
     modal.className = 'profile-modal hidden';
     modal.innerHTML = `
@@ -98,7 +100,7 @@
           <input type="date" id="birthday-input">
           <hr>
           <div class="report-box">
-            <label style="color:#801401; background-color:pink; border-radius: 25px;"> Submit a report/request to management </label>
+            <label>Submit a report/request to management</label>
             <textarea id="support-body" placeholder="Describe the issue" rows="3"></textarea>
             <div class="attach-line">
               <label class="upload-btn" for="support-file" style="margin:0;">Attach file (max 25MB)</label>
@@ -118,13 +120,6 @@
         </div>
       </div>`;
     document.body.appendChild(modal);
-
-    // ✅ FIX: these elements exist only AFTER modal is appended
-    const emailReadonly = modal.querySelector('#email-readonly');
-    const supportBody = modal.querySelector('#support-body');
-    const supportFile = modal.querySelector('#support-file');
-    const supportFileName = modal.querySelector('#support-file-name');
-    const supportSend = modal.querySelector('#support-send');
 
     const state = { profile: null };
     let notifications = [];
@@ -162,20 +157,12 @@
       const full_name = document.getElementById('full-name-input').value.trim();
       const birthday = document.getElementById('birthday-input').value;
       if (full_name) {
-        await api('/api/update_profile', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ full_name, birthday })
-        });
+        await api('/api/update_profile', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ full_name, birthday }) });
       }
       const oldp = document.getElementById('old-pass').value;
       const newp = document.getElementById('new-pass').value;
       if (oldp && newp) {
-        await api('/api/change_password', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ old_password: oldp, new_password: newp })
-        });
+        await api('/api/change_password', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ old_password: oldp, new_password: newp }) });
       }
       const file = document.getElementById('avatar-file').files[0];
       if (file) {
@@ -188,20 +175,14 @@
     }
 
     function openModal() { modal.classList.remove('hidden'); }
-    function closeModal() {
-      modal.classList.add('hidden');
-      document.getElementById('old-pass').value='';
-      document.getElementById('new-pass').value='';
-    }
+    function closeModal() { modal.classList.add('hidden'); document.getElementById('old-pass').value=''; document.getElementById('new-pass').value=''; }
 
-    // ✅ FIX: modal open/close wiring (was missing)
     profileChip.addEventListener('click', () => { openModal(); });
     modal.querySelector('#close-modal').addEventListener('click', closeModal);
     modal.querySelector('#cancel-modal').addEventListener('click', closeModal);
     modal.querySelector('#save-profile').addEventListener('click', async () => {
       try { await saveProfile(); } catch (e) { alert('Save failed: ' + e.message); }
     });
-
     document.getElementById('avatar-file').addEventListener('change', (e)=>{
       const f = e.target.files[0];
       if (f) {
@@ -324,39 +305,19 @@
     const settingsToggle = document.querySelector('.settings-toggle');
     const settingsSubmenu = document.querySelector('.settings-submenu');
     const arrow = document.querySelector('.arrow');
-    const overlay = document.getElementById('sidebar-overlay');
 
     toggleBtn.addEventListener('click', () => {
-      const isMobile = window.matchMedia('(max-width: 768px)').matches;
-
-      if (isMobile) {
-        sidebar.classList.toggle('open');
-        overlay.classList.toggle('show', sidebar.classList.contains('open'));
-        return;
-      }
-
-      // Desktop behavior (your existing)
       sidebar.classList.toggle('collapsed');
       content.classList.toggle('expanded');
       topbar.classList.toggle('shifted');
       title.classList.toggle('stretched');
 
-      sidebarTitle.textContent = sidebar.classList.contains('collapsed') ? 'SV' : 'Skillvine';
-    });
-
-    overlay.addEventListener('click', () => {
-      sidebar.classList.remove('open');
-      overlay.classList.remove('show');
-    });
-
-    window.addEventListener('resize', () => {
-      const isMobile = window.matchMedia('(max-width: 768px)').matches;
-      if (!isMobile) {
-        sidebar.classList.remove('open');
-        overlay.classList.remove('show');
+      if (sidebar.classList.contains('collapsed')) {
+        sidebarTitle.textContent = 'SV';
+      } else {
+        sidebarTitle.textContent = 'Skillvine';
       }
     });
-
 
     settingsToggle.addEventListener('click', (e) => {
       e.preventDefault();
@@ -576,13 +537,13 @@
     fetchNotifications();
     connectNotifWs();
 
-    // Logout with fade-out effect
-    document.querySelector('a[href="/logout"]').addEventListener('click', function (e) {
-      e.preventDefault();
-      document.body.style.transition = 'opacity 0.5s';
-      document.body.style.opacity = '0';
-      setTimeout(() => window.location.href = '/logout', 500);
-    });
+  // Logout with fade-out effect
+  document.querySelector('a[href="/logout"]').addEventListener('click', function (e) {
+    e.preventDefault();
+    document.body.style.transition = 'opacity 0.5s';
+    document.body.style.opacity = '0';
+    setTimeout(() => window.location.href = '/logout', 500);
+  });
   </script>
   <script src="/static/js/flash.js"></script>
 </body>

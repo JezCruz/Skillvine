@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:15
+    container_name: skillvine_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: skillvine_user
+      POSTGRES_PASSWORD: skillvine_user_2025
+      POSTGRES_DB: skillvine_db
+    ports:
+      - "5432:5432"   # optional: for DBeaver / local access
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U skillvine_user -d skillvine_db"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    container_name: skillvine_app
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://skillvine_user:skillvine_user_2025@db:5432/skillvine_db
+      BIND_ADDR: 0.0.0.0
+      PORT: 8080
+      RUST_LOG: info
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db_data:
